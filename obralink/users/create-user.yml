@@ -1,0 +1,36 @@
+info:
+  name: Create User
+  type: http
+  seq: 1
+  tags:
+    - users
+http:
+  method: POST
+  url: "{{baseUrl}}/identity/users"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "tenantId": "{{tenantId}}",
+        "email": "tenant-admin@obralink.com",
+        "password": "ChangeMe123!",
+        "firstName": "Tenant",
+        "lastName": "Admin",
+        "userType": "TENANT_ADMIN",
+        "identificationNumber": "0912345678"
+      }
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Requires `GLOBAL_ADMIN` or `TENANT_ADMIN` and `identity.users.create`.

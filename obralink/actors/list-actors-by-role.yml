@@ -1,0 +1,31 @@
+info:
+  name: List Actors By Role
+  type: http
+  seq: 3
+  tags:
+    - actors
+    - roles
+http:
+  method: GET
+  url: "{{baseUrl}}/identity/actors/by-role/{{roleId}}"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  params:
+    - name: roleId
+      value: "{{roleId}}"
+      type: path
+    - name: tenantId
+      value: "{{tenantId}}"
+      type: query
+      disabled: false
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Lists business actors assigned to a role.

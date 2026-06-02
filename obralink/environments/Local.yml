@@ -1,0 +1,42 @@
+name: Local
+variables:
+  - name: baseUrl
+    value: http://localhost:3000/api
+    enabled: true
+    secret: false
+    type: text
+  - name: accessToken
+    value: ""
+    enabled: true
+    secret: true
+    type: text
+  - name: refreshToken
+    value: ""
+    enabled: true
+    secret: true
+    type: text
+  - name: tenantId
+    value: ""
+    enabled: true
+    secret: false
+    type: text
+  - name: trackingId
+    value: 8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a
+    enabled: true
+    secret: false
+    type: text
+  - name: userId
+    value: ""
+    enabled: true
+    secret: false
+    type: text
+  - name: actorId
+    value: ""
+    enabled: true
+    secret: false
+    type: text
+  - name: roleId
+    value: ""
+    enabled: true
+    secret: false
+    type: text

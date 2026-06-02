@@ -1,0 +1,27 @@
+info:
+  name: List Roles By Tenant
+  type: http
+  seq: 1
+  tags:
+    - roles
+http:
+  method: GET
+  url: "{{baseUrl}}/identity/roles"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  params:
+    - name: tenantId
+      value: "{{tenantId}}"
+      type: query
+      disabled: false
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Tenant users are forced to their JWT tenant. `tenantId` is useful only for `GLOBAL_ADMIN`.

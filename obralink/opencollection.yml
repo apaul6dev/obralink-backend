@@ -1,0 +1,28 @@
+opencollection: 1.0.0
+
+info:
+  name: Obralink Identity API
+  description: Identity endpoints for tenants, users, roles and business actors.
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
+docs: |-
+  # Obralink Identity API
+
+  Base URL: `{{baseUrl}}`
+
+  Use the `Local` environment and set `accessToken` with a valid JWT before running protected requests.

@@ -1,0 +1,37 @@
+info:
+  name: Assign Roles To Actor
+  type: http
+  seq: 5
+  tags:
+    - actors
+    - roles
+http:
+  method: POST
+  url: "{{baseUrl}}/identity/actors/{{actorId}}/roles"
+  params:
+    - name: actorId
+      value: "{{actorId}}"
+      type: path
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "roleIds": [
+          "{{roleId}}"
+        ]
+      }
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Requires `TENANT_ADMIN` and `identity.actors.roles.assign`.

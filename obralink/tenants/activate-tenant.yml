@@ -1,0 +1,29 @@
+info:
+  name: Activate Tenant
+  type: http
+  seq: 5
+  tags:
+    - tenants
+    - platform
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/identity/tenants/{{tenantId}}/activate"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  params:
+    - name: tenantId
+      value: "{{tenantId}}"
+      type: path
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: Requires `GLOBAL_ADMIN`.

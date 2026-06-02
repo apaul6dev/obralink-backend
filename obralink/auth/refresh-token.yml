@@ -1,0 +1,27 @@
+info:
+  name: Refresh Token
+  type: http
+  seq: 2
+  tags:
+    - auth
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/refresh-token"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "refreshToken": "{{refreshToken}}"
+      }
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Rotates the refresh token and returns new tokens.

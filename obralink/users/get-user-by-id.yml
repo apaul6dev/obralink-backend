@@ -1,0 +1,26 @@
+info:
+  name: Get User By Id
+  type: http
+  seq: 3
+  tags:
+    - users
+http:
+  method: GET
+  url: "{{baseUrl}}/identity/users/{{userId}}"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  params:
+    - name: userId
+      value: "{{userId}}"
+      type: path
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Reads one user by id using tenant access rules.

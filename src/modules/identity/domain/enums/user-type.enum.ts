@@ -1,0 +1,5 @@
+export enum UserType {
+  GLOBAL_ADMIN = 'GLOBAL_ADMIN',
+  TENANT_ADMIN = 'TENANT_ADMIN',
+  TENANT_USER = 'TENANT_USER',
+}

@@ -1,0 +1,37 @@
+info:
+  name: Assign Roles To User
+  type: http
+  seq: 5
+  tags:
+    - users
+    - roles
+http:
+  method: POST
+  url: "{{baseUrl}}/identity/users/{{userId}}/roles"
+  params:
+    - name: userId
+      value: "{{userId}}"
+      type: path
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "roleIds": [
+          "{{roleId}}"
+        ]
+      }
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Requires `TENANT_ADMIN` and `identity.users.roles.assign`.

@@ -1,0 +1,25 @@
+info:
+  name: List Tenants
+  type: http
+  seq: 2
+  tags:
+    - tenants
+    - platform
+
+http:
+  method: GET
+  url: "{{baseUrl}}/identity/tenants"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  auth:
+    type: bearer
+    token: "{{accessToken}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: Requires `GLOBAL_ADMIN`.
