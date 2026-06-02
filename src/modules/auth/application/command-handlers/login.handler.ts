@@ -18,6 +18,7 @@ import { PASSWORD_HASHER, PasswordHasher } from '../../domain/services/password-
 import { TOKEN_GENERATOR, TokenGenerator } from '../../domain/services/token-generator.interface';
 import { LoginResponseDto } from '../dto/login-response.dto';
 import { LoginCommand } from '../commands/login.command';
+import { buildUiAccess } from '../services/ui-access.mapper';
 
 @CommandHandler(LoginCommand)
 export class LoginHandler implements ICommandHandler<LoginCommand> {
@@ -117,6 +118,7 @@ export class LoginHandler implements ICommandHandler<LoginCommand> {
         userType: user.userType,
         roles: user.roles,
         permissions: user.permissions,
+        ui: buildUiAccess(user.userType, user.permissions),
       },
     };
   }

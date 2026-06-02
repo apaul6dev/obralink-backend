@@ -1,4 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger';
+import { UiAccessResponseDto } from './ui-access-response.dto';
 
 export class LoginUserResponseDto {
   @ApiProperty()
@@ -24,6 +25,9 @@ export class LoginUserResponseDto {
 
   @ApiProperty({ type: [String] })
   permissions: string[];
+
+  @ApiProperty({ type: UiAccessResponseDto })
+  ui: UiAccessResponseDto;
 }
 
 export class LoginResponseDto {
