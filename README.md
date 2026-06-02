@@ -436,3 +436,4 @@ npm run build
 ```
 
 El script de lint está definido, pero requiere una configuración `eslint.config.*` compatible con ESLint 9 para poder ejecutarse.
+# obralink-backend
