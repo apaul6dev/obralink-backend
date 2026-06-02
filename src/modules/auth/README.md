@@ -34,6 +34,26 @@ Este módulo contiene la autenticación del backend multitenant.
 - Usuarios suspendidos o tenants suspendidos no pueden iniciar sesión.
 - El tenant no se toma desde headers.
 
+## Contrato UI
+
+`login`, `refresh-token` y `me` devuelven `ui.screens` y `ui.actions`.
+
+Ejemplo:
+
+```json
+{
+  "ui": {
+    "screens": ["dashboard", "actors", "profile", "sessions"],
+    "actions": ["actors.create", "actors.update"]
+  }
+}
+```
+
+El frontend debe usar:
+
+- `ui.screens`: pantallas visibles en navegación.
+- `ui.actions`: botones, opciones y acciones habilitadas.
+
 ## Sesiones Y Tokens
 
 - Cada login crea un registro en `user_sessions`.

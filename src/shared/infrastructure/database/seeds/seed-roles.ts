@@ -17,7 +17,7 @@ interface RoleSeed {
   permissions: string[];
 }
 
-const permissions: PermissionSeed[] = [
+const apiPermissions: PermissionSeed[] = [
   { code: 'identity.users.create', description: 'Create users.' },
   { code: 'identity.users.read', description: 'Read users.' },
   { code: 'identity.users.update', description: 'Update users.' },
@@ -30,11 +30,65 @@ const permissions: PermissionSeed[] = [
   { code: 'identity.actors.roles.remove', description: 'Remove roles from business actors.' },
 ];
 
+const uiPermissions: PermissionSeed[] = [
+  { code: 'ui.dashboard.view', description: 'View dashboard screen.' },
+  { code: 'ui.tenants.view', description: 'View tenants screen.' },
+  { code: 'ui.tenants.create', description: 'Show create tenant action.' },
+  { code: 'ui.tenants.update', description: 'Show update tenant action.' },
+  { code: 'ui.tenants.activate', description: 'Show activate tenant action.' },
+  { code: 'ui.tenants.suspend', description: 'Show suspend tenant action.' },
+  { code: 'ui.users.view', description: 'View users screen.' },
+  { code: 'ui.users.create', description: 'Show create user action.' },
+  { code: 'ui.users.update', description: 'Show update user action.' },
+  { code: 'ui.users.assign_roles', description: 'Show assign user roles action.' },
+  { code: 'ui.roles.view', description: 'View roles screen.' },
+  { code: 'ui.actors.view', description: 'View actors screen.' },
+  { code: 'ui.actors.create', description: 'Show create actor action.' },
+  { code: 'ui.actors.update', description: 'Show update actor action.' },
+  { code: 'ui.actors.assign_roles', description: 'Show assign actor roles action.' },
+  { code: 'ui.actors.remove_roles', description: 'Show remove actor roles action.' },
+  { code: 'ui.profile.view', description: 'View profile screen.' },
+  { code: 'ui.sessions.view', description: 'View active sessions screen.' },
+];
+
+const permissions: PermissionSeed[] = [...apiPermissions, ...uiPermissions];
+
+const sharedTenantUiPermissions = [
+  'ui.dashboard.view',
+  'ui.profile.view',
+  'ui.sessions.view',
+];
+
+const actorWriteUiPermissions = [
+  'ui.roles.view',
+  'ui.actors.view',
+  'ui.actors.create',
+  'ui.actors.update',
+];
+
+const actorReadUiPermissions = [
+  'ui.roles.view',
+  'ui.actors.view',
+];
+
 const tenantRoles: RoleSeed[] = [
   {
     code: 'tenant.admin',
     name: 'Tenant Admin',
-    permissions: permissions.map((permission) => permission.code),
+    permissions: [
+      ...apiPermissions.map((permission) => permission.code),
+      ...sharedTenantUiPermissions,
+      'ui.users.view',
+      'ui.users.create',
+      'ui.users.update',
+      'ui.users.assign_roles',
+      'ui.roles.view',
+      'ui.actors.view',
+      'ui.actors.create',
+      'ui.actors.update',
+      'ui.actors.assign_roles',
+      'ui.actors.remove_roles',
+    ],
   },
   {
     code: 'tenant.user',
@@ -44,6 +98,8 @@ const tenantRoles: RoleSeed[] = [
       'identity.actors.create',
       'identity.actors.read',
       'identity.actors.update',
+      ...sharedTenantUiPermissions,
+      ...actorWriteUiPermissions,
     ],
   },
   {
@@ -54,6 +110,8 @@ const tenantRoles: RoleSeed[] = [
       'identity.actors.create',
       'identity.actors.read',
       'identity.actors.update',
+      ...sharedTenantUiPermissions,
+      ...actorWriteUiPermissions,
     ],
   },
   {
@@ -62,6 +120,8 @@ const tenantRoles: RoleSeed[] = [
     permissions: [
       'identity.roles.read',
       'identity.actors.read',
+      ...sharedTenantUiPermissions,
+      ...actorReadUiPermissions,
     ],
   },
   {
@@ -70,6 +130,8 @@ const tenantRoles: RoleSeed[] = [
     permissions: [
       'identity.roles.read',
       'identity.actors.read',
+      ...sharedTenantUiPermissions,
+      ...actorReadUiPermissions,
     ],
   },
   {
@@ -79,6 +141,9 @@ const tenantRoles: RoleSeed[] = [
       'identity.roles.read',
       'identity.users.read',
       'identity.actors.read',
+      ...sharedTenantUiPermissions,
+      'ui.users.view',
+      ...actorReadUiPermissions,
     ],
   },
 ];

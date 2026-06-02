@@ -16,6 +16,7 @@ import { PASSWORD_HASHER, PasswordHasher } from '../../domain/services/password-
 import { TOKEN_GENERATOR, TokenGenerator } from '../../domain/services/token-generator.interface';
 import { RefreshTokenCommand } from '../commands/refresh-token.command';
 import { LoginResponseDto } from '../dto/login-response.dto';
+import { buildUiAccess } from '../services/ui-access.mapper';
 
 @CommandHandler(RefreshTokenCommand)
 export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand> {
@@ -83,6 +84,7 @@ export class RefreshTokenHandler implements ICommandHandler<RefreshTokenCommand>
         userType: user.userType,
         roles: user.roles,
         permissions: user.permissions,
+        ui: buildUiAccess(user.userType, user.permissions),
       },
     };
   }

@@ -30,6 +30,17 @@ Si se envía, debe ser UUID. Si no se envía, el backend genera uno y lo devuelv
 - `GET /api/auth/me`: devuelve el usuario autenticado.
 - `GET /api/auth/sessions`: lista sesiones activas del usuario autenticado.
 
+`login`, `refresh-token` y `me` devuelven un bloque `ui` para el frontend:
+
+```json
+{
+  "ui": {
+    "screens": ["dashboard", "users", "actors"],
+    "actions": ["users.create", "actors.update"]
+  }
+}
+```
+
 ## Identity - Tenants
 
 - `POST /api/identity/tenants`: crea tenant. Requiere `GLOBAL_ADMIN`.

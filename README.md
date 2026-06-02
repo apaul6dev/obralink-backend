@@ -273,6 +273,38 @@ erDiagram
 - Los usuarios tenant no pueden crear usuarios plataforma.
 - El contexto tenant no se toma desde headers.
 
+## Acceso Para Frontend
+
+El backend separa permisos técnicos de API y permisos de interfaz.
+
+- Permisos API: protegen endpoints, por ejemplo `identity.users.create`.
+- Permisos UI: habilitan pantallas y acciones visuales, por ejemplo `ui.users.view` o `ui.users.create`.
+
+Las respuestas de `POST /api/auth/login`, `POST /api/auth/refresh-token` y `GET /api/auth/me` incluyen:
+
+```json
+{
+  "roles": ["tenant.admin"],
+  "permissions": ["identity.users.read", "ui.users.view"],
+  "ui": {
+    "screens": ["actors", "dashboard", "profile", "roles", "sessions", "users"],
+    "actions": ["actors.create", "actors.update", "users.create", "users.update"]
+  }
+}
+```
+
+El frontend debe construir menús desde `ui.screens` y botones/opciones desde `ui.actions`. La seguridad real sigue estando en backend mediante guards y permisos de API.
+
+Roles base:
+
+- `GLOBAL_ADMIN`: acceso UI completo a plataforma.
+- `tenant.admin`: usuarios, roles, actores, perfil y sesiones dentro del tenant.
+- `tenant.user`: actores, roles, perfil y sesiones.
+- `sales.representative`: actores, roles, perfil y sesiones.
+- `engineer.technician`: lectura de actores, roles, perfil y sesiones.
+- `accounting.finance`: lectura de actores, roles, perfil y sesiones.
+- `management`: lectura de usuarios, actores, roles, perfil y sesiones.
+
 ## Validación
 
 `main.ts` registra un `ValidationPipe` global con:
@@ -403,6 +435,12 @@ npm run migration:show
 npm run migration:revert
 npm run db:logs
 npm run db:down
+```
+
+Después de cambios en permisos o roles, ejecutar:
+
+```bash
+npm run seed:roles
 ```
 
 Login con el global admin sembrado:

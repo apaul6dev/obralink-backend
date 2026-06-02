@@ -1,6 +1,7 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { CurrentUserResponseDto } from '../dto/current-user-response.dto';
 import { GetCurrentUserQuery } from '../queries/get-current-user.query';
+import { buildUiAccess } from '../services/ui-access.mapper';
 
 @QueryHandler(GetCurrentUserQuery)
 export class GetCurrentUserHandler implements IQueryHandler<GetCurrentUserQuery> {
@@ -13,6 +14,7 @@ export class GetCurrentUserHandler implements IQueryHandler<GetCurrentUserQuery>
       sessionId: query.sessionId,
       roles: query.roles,
       permissions: query.permissions,
+      ui: buildUiAccess(query.userType, query.permissions),
     };
   }
 }
