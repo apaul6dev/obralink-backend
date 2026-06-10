@@ -1,0 +1,6 @@
+info:
+  name: Companies
+  type: folder
+  seq: 1
+docs: |-
+  Company platform operations.

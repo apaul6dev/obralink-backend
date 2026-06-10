@@ -23,12 +23,12 @@ export class TypeOrmRoleRepository implements RoleRepository {
     return role ? RoleMapper.toDomain(role) : null;
   }
 
-  async findByTenantId(tenantId: string): Promise<Role[]> {
-    const roles = await this.repository.find({ where: { tenantId }, order: { name: 'ASC' } });
+  async findByCompanyId(companyId: string): Promise<Role[]> {
+    const roles = await this.repository.find({ where: { companyId }, order: { name: 'ASC' } });
     return roles.map(RoleMapper.toDomain);
   }
 
-  async existsInTenant(roleId: string, tenantId: string): Promise<boolean> {
-    return this.repository.exists({ where: [{ id: roleId, tenantId }, { id: roleId, tenantId: IsNull() }] });
+  async existsInCompany(roleId: string, companyId: string): Promise<boolean> {
+    return this.repository.exists({ where: [{ id: roleId, companyId }, { id: roleId, companyId: IsNull() }] });
   }
 }

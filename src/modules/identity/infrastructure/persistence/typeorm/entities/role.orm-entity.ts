@@ -1,19 +1,19 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Status } from '../../../../domain/enums/status.enum';
-import { TenantOrmEntity } from './tenant.orm-entity';
+import { CompanyOrmEntity } from './company.orm-entity';
 
 @Entity({ name: 'roles' })
-@Index('uq_roles_tenant_code_active', ['tenantId', 'code'], { unique: true, where: 'deleted_at IS NULL' })
+@Index('uq_roles_company_code_active', ['companyId', 'code'], { unique: true, where: 'deleted_at IS NULL' })
 export class RoleOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'tenant_id', type: 'uuid', nullable: true })
-  tenantId: string | null;
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
 
-  @ManyToOne(() => TenantOrmEntity, { nullable: true, onDelete: 'CASCADE' })
-  @JoinColumn({ name: 'tenant_id' })
-  tenant?: TenantOrmEntity | null;
+  @ManyToOne(() => CompanyOrmEntity, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'company_id' })
+  company?: CompanyOrmEntity | null;
 
   @Column({ type: 'varchar', length: 120 })
   name: string;

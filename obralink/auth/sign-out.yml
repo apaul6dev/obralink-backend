@@ -1,0 +1,20 @@
+info:
+  name: Sign Out
+  type: http
+  seq: 3
+  tags:
+    - auth
+http:
+  method: POST
+  url: "{{baseUrl}}/auth/sign-out"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Signs out the current Better Auth session.
+

@@ -3,7 +3,7 @@ import { PermissionOrmEntity } from './permission.orm-entity';
 import { RoleOrmEntity } from './role.orm-entity';
 
 @Entity({ name: 'role_permissions' })
-@Index('uq_role_permissions_role_permission_tenant', ['roleId', 'permissionId', 'tenantId'], { unique: true })
+@Index('uq_role_permissions_role_permission_company', ['roleId', 'permissionId', 'companyId'], { unique: true })
 export class RolePermissionOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -22,8 +22,8 @@ export class RolePermissionOrmEntity {
   @JoinColumn({ name: 'permission_id' })
   permission?: PermissionOrmEntity;
 
-  @Column({ name: 'tenant_id', type: 'uuid', nullable: true })
-  tenantId: string | null;
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

@@ -1,24 +1,29 @@
 name: Local
 variables:
   - name: baseUrl
-    value: http://localhost:3000/api
+    value: http://localhost:80/api
     enabled: true
     secret: false
     type: text
-  - name: accessToken
-    value: ""
-    enabled: true
-    secret: true
-    type: text
-  - name: refreshToken
-    value: ""
-    enabled: true
-    secret: true
-    type: text
-  - name: tenantId
+  - name: companyId
     value: ""
     enabled: true
     secret: false
+    type: text
+  - name: companyTaxId
+    value: 12-3456789
+    enabled: true
+    secret: false
+    type: text
+  - name: systemOwnerEmail
+    value: admin@obralink.local
+    enabled: true
+    secret: false
+    type: text
+  - name: systemOwnerPassword
+    value: Admin123!
+    enabled: true
+    secret: true
     type: text
   - name: trackingId
     value: 8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a
@@ -26,11 +31,6 @@ variables:
     secret: false
     type: text
   - name: userId
-    value: ""
-    enabled: true
-    secret: false
-    type: text
-  - name: actorId
     value: ""
     enabled: true
     secret: false

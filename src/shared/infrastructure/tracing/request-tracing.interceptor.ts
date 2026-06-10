@@ -12,7 +12,7 @@ interface TraceableRequest {
   headers: Record<string, string | string[] | undefined>;
   user?: {
     id?: string;
-    tenantId?: string | null;
+    companyId?: string | null;
   };
   trackingId?: string;
 }
@@ -36,7 +36,7 @@ export class RequestTracingInterceptor implements NestInterceptor {
 
     const requestedTrackingId = this.firstHeaderValue(request.headers[TRACKING_ID_HEADER]);
     const trackingId = requestedTrackingId && isUUID(requestedTrackingId) ? requestedTrackingId : randomUUID();
-    const tenantId = request.user?.tenantId ?? null;
+    const companyId = request.user?.companyId ?? null;
     const path = request.originalUrl ?? request.url ?? '';
 
     request.trackingId = trackingId;
@@ -48,7 +48,7 @@ export class RequestTracingInterceptor implements NestInterceptor {
         method: request.method,
         path,
         userId: request.user?.id ?? null,
-        tenantId,
+        companyId,
       },
       () => {
         if (requestedTrackingId && !isUUID(requestedTrackingId)) {

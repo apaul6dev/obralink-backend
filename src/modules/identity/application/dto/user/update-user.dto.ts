@@ -1,5 +1,5 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
 import { Status } from '../../../domain/enums/status.enum';
 
 export class UpdateUserDto {
@@ -20,6 +20,18 @@ export class UpdateUserDto {
   @IsString()
   @MaxLength(60)
   identificationNumber?: string | null;
+
+  @ApiPropertyOptional({ example: 'alice.personal@example.com', nullable: true, description: 'Personal email. Correo personal.' })
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(180)
+  personalEmail?: string | null;
+
+  @ApiPropertyOptional({ example: '+1 555 123 4567', nullable: true, description: 'Phone number. Número de teléfono.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  phoneNumber?: string | null;
 
   @ApiPropertyOptional({ enum: Status, example: Status.ACTIVE, description: 'User status. Estado del usuario.' })
   @IsOptional()

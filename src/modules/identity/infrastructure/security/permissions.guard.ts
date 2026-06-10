@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UserType } from '../../domain/enums/user-type.enum';
-import { AuthenticatedIdentity } from '../../domain/services/tenant-access-policy.service';
+import { AuthenticatedIdentity } from '../../domain/services/company-access-policy.service';
 import { REQUIRED_PERMISSIONS_KEY } from '../../presentation/decorators/permissions.decorator';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
     const request = context.switchToHttp().getRequest<{ user?: AuthenticatedIdentity }>();
-    if (request.user?.userType === UserType.GLOBAL_ADMIN) {
+    if (request.user?.userType === UserType.SYSTEM_OWNER || request.user?.userType === UserType.COMPANY_ADMIN) {
       return true;
     }
     const permissions = request.user?.permissions ?? [];

@@ -1,0 +1,40 @@
+info:
+  name: Create Company Admin
+  type: http
+  seq: 7
+  tags:
+    - companies
+    - platform
+http:
+  method: POST
+  url: "{{baseUrl}}/identity/companies/{{companyId}}/admin"
+  params:
+    - name: companyId
+      value: "{{companyId}}"
+      type: path
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "email": "company-admin@obralink.com",
+        "password": "ChangeMe123!",
+        "firstName": "Company",
+        "lastName": "Admin",
+        "identificationNumber": "0912345678",
+        "personalEmail": "company.admin.personal@example.com",
+        "phoneNumber": "+1 555 123 4567"
+      }
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Requires `SYSTEM_OWNER`.
+
+  Creates the initial `COMPANY_ADMIN` for a company. Regular users are managed later by that company admin.

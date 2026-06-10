@@ -16,21 +16,20 @@ http:
     type: json
     data: |-
       {
-        "tenantId": "{{tenantId}}",
-        "email": "tenant-admin@obralink.com",
+        "companyId": "{{companyId}}",
+        "email": "company-admin@obralink.com",
         "password": "ChangeMe123!",
-        "firstName": "Tenant",
+        "firstName": "Company",
         "lastName": "Admin",
-        "userType": "TENANT_ADMIN",
-        "identificationNumber": "0912345678"
+        "userType": "COMPANY_ADMIN",
+        "identificationNumber": "0912345678",
+        "personalEmail": "company.admin.personal@example.com",
+        "phoneNumber": "+1 555 123 4567"
       }
-  auth:
-    type: bearer
-    token: "{{accessToken}}"
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
 docs: |-
-  Requires `GLOBAL_ADMIN` or `TENANT_ADMIN` and `identity.users.create`.
+  Requires `COMPANY_ADMIN` and `identity.users.create`.

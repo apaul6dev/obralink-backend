@@ -1,20 +1,22 @@
 # Obralink Backend
 
-Backend base de identidad y autenticación para un CRM/ERP multitenant. Está construido con NestJS, TypeScript, PostgreSQL, TypeORM, JWT, Passport, `@nestjs/cqrs`, `class-validator` y Bruno para pruebas locales de API.
+Backend de identidad multitenant para Obralink. Está construido con NestJS, TypeScript, PostgreSQL, TypeORM, Better Auth, `@nestjs/cqrs`, `class-validator` y Swagger.
 
 ## Alcance
 
-El proyecto implementa:
+El backend implementa:
 
-- Autenticación con login, refresh token rotativo, logout, logout de todos los dispositivos, recuperación/reset/cambio de contraseña, usuario actual y sesiones activas.
-- Identidad multitenant con tenants, usuarios, roles, permisos, actores de negocio y asignaciones usuario-rol / actor-rol / rol-permiso.
-- Seguridad por JWT, roles, permisos y contexto de tenant.
-- Persistencia por repositorios TypeORM, migraciones y seeds.
-- Validación global de requests con `ValidationPipe` y DTOs.
+- Autenticación con Better Auth en `/api/auth/*`.
+- Sesiones por cookie administradas por Better Auth.
+- Multitenancy con el plugin `organization` de Better Auth.
+- Empresas, usuarios de dominio, roles y permisos.
+- Guards de identidad que convierten la sesión Better Auth en `AuthenticatedIdentity`.
+- Persistencia con TypeORM, migraciones y seeds.
+- Validación global de requests con `ValidationPipe`.
 - Trazabilidad con `x-tracking-id`, contexto de request y logs correlacionados.
 - Filtro global de excepciones con respuesta JSON estándar.
 
-## Arquitectura Del Proyecto
+## Arquitectura
 
 ```text
 src/
@@ -22,80 +24,179 @@ src/
   main.ts
   health.controller.ts
   modules/
-    auth/
-      domain/              Entidades, enums, contratos de repositorio y servicios
-      application/         Commands, queries, DTOs y handlers CQRS
-      infrastructure/      TypeORM, JWT, bcrypt y estrategias Passport
-      presentation/        Controller, guards y decorators HTTP
+    better-auth/
+      better-auth.config.ts       Configuracion Better Auth + organization plugin
     identity/
-      domain/              Entidades, enums, repositorios y políticas multitenant
-      application/         Commands, queries, DTOs y handlers CQRS
-      infrastructure/      TypeORM repositories, entidades ORM, migraciones y guards
-      presentation/        Controllers, decorators y presenters HTTP
+      domain/                     Entidades, enums, repositorios y politicas multitenant
+      application/                Commands, queries, DTOs y handlers CQRS
+      infrastructure/
+        persistence/typeorm/      Entidades ORM y repositorios
+        security/                 Guards y provisionamiento Better Auth
+      presentation/               Controllers, decorators y presenters HTTP
   shared/
     infrastructure/
-      context/             AsyncLocalStorage para contexto de request
-      database/            Configuración TypeORM, data source y seeds
-      exceptions/          Filtro global y excepción base de aplicación
-      logger/              Logger de aplicación con contexto automático
-      tracing/             Interceptor global de tracking
+      context/                    AsyncLocalStorage para contexto de request
+      database/                   TypeORM config, data source, migrations y seeds
+      exceptions/                 Filtro global y excepcion base
+      logger/                     Logger de aplicacion
+      tracing/                    Interceptor global de tracking
 ```
 
-La arquitectura sigue separación por capas:
+Capas:
 
 - `domain`: reglas de negocio y contratos sin depender de HTTP o TypeORM.
-- `application`: casos de uso mediante CQRS (`CommandHandler`, `QueryHandler`) y DTOs.
-- `infrastructure`: persistencia, seguridad técnica, integraciones y configuración.
+- `application`: casos de uso mediante CQRS.
+- `infrastructure`: persistencia, seguridad técnica e integraciones.
 - `presentation`: controllers, guards, decorators y presenters.
-- `shared`: infraestructura transversal reutilizable.
+- `shared`: infraestructura transversal.
+
+## Autenticacion Y Multitenancy
+
+Better Auth es dueño de:
+
+- Login.
+- Logout.
+- Sesiones.
+- Hash de contraseñas.
+- Cookies.
+- Organizaciones.
+- Membresías.
+- Empresa activa.
+
+El módulo `identity` es dueño de:
+
+- Empresas de negocio.
+- Usuarios como perfil/dominio.
+- Roles internos.
+- Permisos internos.
+- Políticas de acceso por empresa.
+
+El registro público de Better Auth está deshabilitado. Los usuarios se crean únicamente desde `POST /api/identity/users`, donde el backend registra el perfil de dominio y provisiona internamente `ba_user`, `ba_account` y `ba_member`.
+
+`SYSTEM_OWNER` administra empresas, pero no pertenece a ninguna empresa y no gestiona usuarios internos. Para iniciar una empresa, `SYSTEM_OWNER` crea su administrador inicial desde `POST /api/identity/companies/:companyId/admin`. Luego ese `COMPANY_ADMIN` administra los usuarios de su propia empresa desde `POST /api/identity/users`.
+
+### Diagrama
+
+```text
+Frontend / Client
+      |
+      | Cookie Better Auth
+      v
+  /api/auth/*
+      |
+      v
+Better Auth
+      |
+      +--> ba_user
+      +--> ba_account
+      +--> ba_session
+      +--> ba_organization
+      +--> ba_member
+      +--> ba_invitation
+      +--> ba_verification
+```
+
+```text
+/api/identity/*
+      |
+      v
+AuthenticatedIdentityGuard
+      |
+      | Lee sesion Better Auth desde cookie
+      v
+AuthenticatedIdentity
+  id        = ba_user.id
+  userType  = ba_user.user_type
+  companyId  = ba_session.active_organization_id
+  permissions = ba_user.permissions
+      |
+      v
+CompanyGuard / RolesGuard / PermissionsGuard
+      |
+      v
+Handlers CQRS + Repositories TypeORM
+```
+
+### Claves De Integracion
+
+```text
+users.id       = ba_user.id
+companies.id     = ba_organization.id
+empresa activa = ba_session.active_organization_id
+membresia      = ba_member(user_id, organization_id)
+```
+
+Cuando se crea una empresa desde `identity`, también se crea su `ba_organization`.
+
+Cuando se crea un usuario desde `identity`, también se crea:
+
+- `ba_user`
+- `ba_account` con credencial Better Auth
+- `ba_member` si el usuario pertenece a una empresa
+
+## Flujo De Login
+
+```text
+POST /api/auth/sign-in/email
+      |
+      v
+Better Auth valida credenciales en ba_user + ba_account
+      |
+      v
+Crea/actualiza sesion en ba_session
+      |
+      v
+Cliente recibe cookie de sesion
+```
+
+Para seleccionar la empresa activa, el cliente debe usar los endpoints de organización de Better Auth. El backend toma la empresa desde:
+
+```text
+ba_session.active_organization_id
+```
+
+El contexto de empresa no se toma desde headers.
 
 ## Flujo De Request
 
-1. `main.ts` registra prefijo `/api`, `ValidationPipe` global y Swagger.
-2. `RequestTracingInterceptor` valida o genera `x-tracking-id`, lo devuelve en headers y crea el contexto del request.
-3. Guards de auth/identity validan JWT, tenant, roles y permisos.
-4. Controllers ejecutan commands/queries de CQRS.
-5. Handlers aplican reglas de negocio y llaman repositorios.
-6. `AppLogger` agrega automáticamente `trackingId`, usuario, tenant y ruta a los logs emitidos durante el request.
-7. `AllExceptionsFilter` estandariza errores y conserva el `trackingId`.
+1. `main.ts` registra prefijo `/api`, `ValidationPipe`, Swagger y desactiva el body parser de Nest para Better Auth.
+2. `RequestTracingInterceptor` valida o genera `x-tracking-id`.
+3. Better Auth procesa `/api/auth/*`.
+4. En `/api/identity/*`, `AuthenticatedIdentityGuard` valida la sesión Better Auth.
+5. `CompanyGuard`, `RolesGuard` y `PermissionsGuard` aplican autorización.
+6. Controllers ejecutan commands/queries CQRS.
+7. Handlers aplican reglas de negocio y llaman repositorios.
+8. `AllExceptionsFilter` estandariza errores y conserva el `trackingId`.
 
-## Arquitectura De Base De Datos
+## Base De Datos
 
-La base usa PostgreSQL con UUIDs generados por `pgcrypto`, enums, claves foráneas, índices únicos parciales para registros activos y columnas de borrado lógico (`deleted_at`) en entidades principales.
+PostgreSQL usa UUIDs, claves foráneas, índices únicos parciales y borrado lógico (`deleted_at`) en entidades principales del dominio.
 
 ### Diagrama ER
 
 ```mermaid
 erDiagram
-  TENANTS ||--o{ USERS : contains
-  TENANTS ||--o{ ROLES : defines
-  TENANTS ||--o{ USER_ROLES : scopes
-  TENANTS ||--o{ ROLE_PERMISSIONS : scopes
-  TENANTS ||--o{ ACTORS : contains
-  TENANTS ||--o{ ACTOR_ROLES : scopes
-  TENANTS ||--o{ USER_SESSIONS : owns
-  TENANTS ||--o{ AUTH_EVENTS : audits
-
+  COMPANIES ||--o{ USERS : contains
+  COMPANIES ||--o{ ROLES : defines
+  COMPANIES ||--o{ USER_ROLES : scopes
+  COMPANIES ||--o{ ROLE_PERMISSIONS : scopes
   USERS ||--o{ USER_ROLES : has
-  USERS ||--o{ USER_SESSIONS : opens
-  USERS ||--o{ REFRESH_TOKENS : owns
-  USERS ||--o{ PASSWORD_RESET_TOKENS : requests
-  USERS ||--o{ AUTH_EVENTS : produces
-
-  USER_SESSIONS ||--o{ REFRESH_TOKENS : rotates
-  USER_SESSIONS ||--o{ AUTH_EVENTS : references
-
   ROLES ||--o{ USER_ROLES : assigned_to
   ROLES ||--o{ ROLE_PERMISSIONS : grants
-  ROLES ||--o{ ACTOR_ROLES : assigned_to
   PERMISSIONS ||--o{ ROLE_PERMISSIONS : included_in
-  ACTORS ||--o{ ACTOR_ROLES : has
 
-  TENANTS {
+  BA_USER ||--o{ BA_ACCOUNT : owns
+  BA_USER ||--o{ BA_SESSION : opens
+  BA_USER ||--o{ BA_MEMBER : belongs_to
+  BA_ORGANIZATION ||--o{ BA_MEMBER : contains
+  BA_ORGANIZATION ||--o{ BA_INVITATION : invites
+  BA_ORGANIZATION ||--o{ BA_SESSION : active_context
+
+  COMPANIES {
     uuid id PK
     varchar name
     varchar legal_name
-    varchar identification_number
+    varchar tax_id
     status_enum status
     timestamptz created_at
     timestamptz updated_at
@@ -104,14 +205,15 @@ erDiagram
 
   USERS {
     uuid id PK
-    uuid tenant_id FK
+    uuid company_id FK
     varchar email
-    varchar password_hash
     varchar first_name
     varchar last_name
     user_type_enum user_type
     status_enum status
     varchar identification_number
+    varchar personal_email
+    varchar phone_number
     timestamptz created_at
     timestamptz updated_at
     timestamptz deleted_at
@@ -119,7 +221,7 @@ erDiagram
 
   ROLES {
     uuid id PK
-    uuid tenant_id FK
+    uuid company_id FK
     varchar name
     varchar code
     status_enum status
@@ -141,7 +243,7 @@ erDiagram
     uuid id PK
     uuid user_id FK
     uuid role_id FK
-    uuid tenant_id FK
+    uuid company_id FK
     timestamptz created_at
   }
 
@@ -149,207 +251,112 @@ erDiagram
     uuid id PK
     uuid role_id FK
     uuid permission_id FK
-    uuid tenant_id FK
+    uuid company_id FK
     timestamptz created_at
   }
 
-  ACTORS {
-    uuid id PK
-    uuid tenant_id FK
-    actor_type_enum type
-    varchar name
-    varchar email
-    varchar identification_number
-    varchar phone
-    status_enum status
+  BA_USER {
+    text id PK
+    text name
+    text email
+    boolean email_verified
+    varchar user_type
+    text_array permissions
     timestamptz created_at
     timestamptz updated_at
-    timestamptz deleted_at
   }
 
-  ACTOR_ROLES {
-    uuid id PK
-    uuid actor_id FK
-    uuid role_id FK
-    uuid tenant_id FK
+  BA_ACCOUNT {
+    text id PK
+    text account_id
+    text provider_id
+    text user_id FK
+    text password
     timestamptz created_at
+    timestamptz updated_at
   }
 
-  USER_SESSIONS {
-    uuid id PK
-    uuid user_id FK
-    uuid tenant_id FK
-    session_status_enum status
-    varchar ip_address
-    varchar user_agent
-    timestamptz login_at
-    timestamptz logout_at
+  BA_SESSION {
+    text id PK
+    text token
+    text user_id FK
+    text active_organization_id FK
     timestamptz expires_at
     timestamptz created_at
     timestamptz updated_at
-    timestamptz deleted_at
   }
 
-  REFRESH_TOKENS {
-    uuid id PK
-    uuid user_id FK
-    uuid session_id FK
-    varchar token_hash
-    timestamptz expires_at
-    timestamptz revoked_at
-    uuid replaced_by_token_id
+  BA_ORGANIZATION {
+    text id PK
+    text name
+    text slug
+    text logo
     timestamptz created_at
     timestamptz updated_at
-    timestamptz deleted_at
   }
 
-  PASSWORD_RESET_TOKENS {
-    uuid id PK
-    uuid user_id FK
-    varchar token_hash
-    timestamptz expires_at
-    timestamptz used_at
-    timestamptz created_at
-    timestamptz updated_at
-    timestamptz deleted_at
-  }
-
-  AUTH_EVENTS {
-    uuid id PK
-    auth_event_type_enum type
-    uuid user_id FK
-    uuid tenant_id FK
-    uuid session_id FK
-    varchar email
-    varchar ip_address
-    varchar user_agent
-    jsonb metadata
+  BA_MEMBER {
+    text id PK
+    text organization_id FK
+    text user_id FK
+    text role
     timestamptz created_at
   }
 ```
 
-### Tablas Implementadas
+### Tablas
 
-- `tenants`: empresas/tenants del sistema.
-- `users`: usuarios globales o de tenant.
-- `roles`: roles globales o por tenant.
-- `permissions`: catálogo de permisos.
-- `user_roles`: asignación de roles a usuarios tenant.
-- `role_permissions`: permisos asignados a roles.
-- `actors`: actores de negocio del tenant.
-- `actor_roles`: asignación de roles a actores.
-- `user_sessions`: sesiones autenticadas.
-- `refresh_tokens`: refresh tokens hasheados y rotativos.
-- `password_reset_tokens`: tokens hasheados de recuperación de contraseña.
-- `auth_events`: auditoría de eventos de autenticación.
+Better Auth:
+
+- `ba_user`
+- `ba_account`
+- `ba_session`
+- `ba_organization`
+- `ba_member`
+- `ba_invitation`
+- `ba_verification`
+
+Dominio Identity:
+
+- `companies`
+- `users`
+- `roles`
+- `permissions`
+- `user_roles`
+- `role_permissions`
 
 ### Enums
 
 - `status_enum`: `ACTIVE`, `INACTIVE`, `SUSPENDED`.
-- `user_type_enum`: `GLOBAL_ADMIN`, `TENANT_ADMIN`, `TENANT_USER`.
-- `actor_type_enum`: `CLIENT`, `SALES_REPRESENTATIVE`, `ENGINEER_TECHNICIAN`, `COMMERCIAL_ADMINISTRATOR`, `EXTERNAL_SUBCONTRACTOR`, `ACCOUNTING_FINANCE`, `MANAGEMENT`.
-- `session_status_enum`: `ACTIVE`, `REVOKED`, `EXPIRED`.
-- `auth_event_type_enum`: `LOGIN`, `FAILED_LOGIN`, `LOGOUT`, `LOGOUT_ALL_DEVICES`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET`, `PASSWORD_CHANGED`, `TOKEN_REFRESH`.
+- `user_type_enum`: `SYSTEM_OWNER`, `COMPANY_ADMIN`, `COMPANY_USER`.
 
-### Índices Y Unicidad
+### Indices Relevantes
 
-- `uq_users_tenant_email_active`: evita emails duplicados por tenant en usuarios no borrados.
-- `uq_users_tenant_identification_active`: evita identificaciones duplicadas por tenant cuando existen.
-- `uq_roles_tenant_code_active`: evita códigos de rol duplicados por tenant.
+- `uq_users_company_email_active`: evita emails duplicados por empresa.
+- `uq_users_company_identification_active`: evita identificaciones de usuario duplicadas por empresa.
+- `uq_roles_company_code_active`: evita códigos de rol duplicados por empresa.
 - `uq_permissions_code_active`: evita permisos duplicados activos.
-- `uq_actors_tenant_email_active`: evita emails duplicados por tenant en actores.
-- `uq_actors_tenant_identification_active`: evita identificaciones duplicadas por tenant en actores.
-- `uq_user_roles_user_role_tenant`: evita duplicar un rol para el mismo usuario en el tenant.
-- `uq_role_permissions_role_permission_tenant`: evita duplicar un permiso para el mismo rol en el tenant.
-- `uq_actor_roles_actor_role_tenant`: evita duplicar un rol para el mismo actor en el tenant.
-- `idx_user_sessions_user_status`, `idx_refresh_tokens_user_session`, `idx_password_reset_tokens_user`, `idx_auth_events_user_created`: aceleran consultas operativas de auth.
+- `uq_user_roles_user_role_company`: evita duplicar un rol para el mismo usuario en la empresa.
+- `uq_role_permissions_role_permission_company`: evita duplicar un permiso para el mismo rol en la empresa.
+- `uq_ba_user_email`: email único en Better Auth.
+- `uq_ba_session_token`: token de sesión único.
+- `uq_ba_organization_slug`: slug único de organización.
+- `uq_ba_member_org_user`: membresía única por usuario y organización.
 
 ## Reglas Multitenant
 
-- Los datos operativos se delimitan por `tenantId`.
-- El tenant efectivo se obtiene desde el JWT para usuarios tenant.
-- `GLOBAL_ADMIN` puede operar a nivel plataforma y puede enviar `tenantId` en endpoints que lo permiten.
-- `TENANT_ADMIN` y `TENANT_USER` quedan restringidos a su propio tenant.
-- Los usuarios tenant no pueden crear usuarios plataforma.
-- El contexto tenant no se toma desde headers.
-
-## Acceso Para Frontend
-
-El backend separa permisos técnicos de API y permisos de interfaz.
-
-- Permisos API: protegen endpoints, por ejemplo `identity.users.create`.
-- Permisos UI: habilitan pantallas y acciones visuales, por ejemplo `ui.users.view` o `ui.users.create`.
-
-Las respuestas de `POST /api/auth/login`, `POST /api/auth/refresh-token` y `GET /api/auth/me` incluyen:
-
-```json
-{
-  "roles": ["tenant.admin"],
-  "permissions": ["identity.users.read", "ui.users.view"],
-  "ui": {
-    "screens": ["actors", "dashboard", "profile", "roles", "sessions", "users"],
-    "actions": ["actors.create", "actors.update", "users.create", "users.update"]
-  }
-}
-```
-
-El frontend debe construir menús desde `ui.screens` y botones/opciones desde `ui.actions`. La seguridad real sigue estando en backend mediante guards y permisos de API.
-
-Roles base:
-
-- `GLOBAL_ADMIN`: acceso UI completo a plataforma.
-- `tenant.admin`: usuarios, roles, actores, perfil y sesiones dentro del tenant.
-- `tenant.user`: actores, roles, perfil y sesiones.
-- `sales.representative`: actores, roles, perfil y sesiones.
-- `engineer.technician`: lectura de actores, roles, perfil y sesiones.
-- `accounting.finance`: lectura de actores, roles, perfil y sesiones.
-- `management`: lectura de usuarios, actores, roles, perfil y sesiones.
-
-## Validación
-
-`main.ts` registra un `ValidationPipe` global con:
-
-- `whitelist: true`
-- `forbidNonWhitelisted: true`
-- `transform: true`
-
-Los bodies, params y queries usan DTOs con `class-validator`. Los IDs de ruta/query (`tenantId`, `userId`, `actorId`, `roleId`) se validan como UUID.
-
-## Trazabilidad Y Logs
-
-Header opcional:
-
-```http
-x-tracking-id: 8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a
-```
-
-- Si se envía, debe ser UUID.
-- Si no se envía, la API genera un UUID.
-- La API devuelve `x-tracking-id` en los response headers.
-- El tracking id se propaga durante todo el proceso mediante `AsyncLocalStorage`.
-- Los logs emitidos durante el request incluyen `trackingId`, `userId`, `tenantId` y ruta.
-- Se registran puntos clave de autenticación, sesiones, tenants, usuarios, actores y roles.
-
-## Excepciones
-
-`AllExceptionsFilter` estandariza las respuestas de error:
-
-```json
-{
-  "statusCode": 400,
-  "code": "BAD_REQUEST",
-  "message": "x-tracking-id must be a UUID",
-  "trackingId": "8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a",
-  "path": "/api/auth/login",
-  "timestamp": "2026-06-02T00:00:00.000Z"
-}
-```
-
-Para errores propios del dominio o aplicación se puede usar `AppException`, que permite definir `code`, `message`, `status` y `details`.
+- Los datos operativos se delimitan por `companyId`.
+- La empresa efectiva para usuarios de empresa viene de `ba_session.active_organization_id`.
+- `SYSTEM_OWNER` puede operar a nivel plataforma y puede enviar `companyId` en endpoints que lo permiten.
+- `COMPANY_ADMIN` y `COMPANY_USER` quedan restringidos a la empresa activa.
+- Los usuarios de empresa no pueden crear dueños del sistema.
+- `COMPANY_ADMIN` tiene acceso administrativo dentro de la empresa.
+- `COMPANY_USER` necesita permisos explícitos en `ba_user.permissions`.
+- El contexto de empresa no se toma desde headers.
 
 ## Endpoints
 
-La lista resumida de endpoints está en [API_SUMMARY.md](./API_SUMMARY.md).
+Todas las rutas usan el prefijo global `/api`.
 
 Swagger/OpenAPI:
 
@@ -363,90 +370,18 @@ Health check:
 http://localhost:3000/api/health
 ```
 
-## Variables De Entorno
+### Auth
 
-Crear el archivo local:
+Los endpoints de autenticación son los de Better Auth bajo:
 
-```bash
-cp .env.example .env
+```text
+/api/auth/*
 ```
 
-Variables principales:
-
-```bash
-DB_HOST=localhost
-DB_PORT=5432
-DB_USERNAME=postgres
-DB_PASSWORD=postgres
-DB_DATABASE=obralink
-
-LOG_LEVELS=error,warn,log,debug
-LOG_PREFIX=Obralink
-LOG_TIMESTAMP=true
-LOG_JSON=false
-LOG_COLORS=true
-
-JWT_SECRET=823d507c-d68d-4f97-bcd7-386eef3b9fcc
-JWT_ACCESS_TOKEN_TTL_SECONDS=900
-JWT_REFRESH_TOKEN_TTL_SECONDS=604800
-AUTH_SESSION_TTL_SECONDS=604800
-PASSWORD_RESET_TOKEN_TTL_SECONDS=3600
-
-AUTH_RATE_LIMIT_TTL_MS=60000
-AUTH_RATE_LIMIT_LIMIT=20
-AUTH_LOGIN_RATE_LIMIT_TTL_MS=60000
-AUTH_LOGIN_RATE_LIMIT_LIMIT=5
-AUTH_PASSWORD_RECOVERY_RATE_LIMIT_TTL_MS=300000
-AUTH_PASSWORD_RECOVERY_RATE_LIMIT_LIMIT=3
-
-GLOBAL_ADMIN_EMAIL=admin@obralink.local
-GLOBAL_ADMIN_PASSWORD=Admin123!
-GLOBAL_ADMIN_FIRST_NAME=Global
-GLOBAL_ADMIN_LAST_NAME=Admin
-GLOBAL_ADMIN_IDENTIFICATION_NUMBER=0000000000
-
-PORT=3000
-```
-
-## Ejecución Local
-
-```bash
-npm install
-npm run db:up
-npm run migration:run
-npm run seed:run
-npm run start:dev
-```
-
-Flujo local completo:
-
-```bash
-npm run start:local
-```
-
-Comandos útiles:
-
-```bash
-npm run setup:local
-npm run seed:roles
-npm run seed:global-admin
-npm run seed:run
-npm run migration:show
-npm run migration:revert
-npm run db:logs
-npm run db:down
-```
-
-Después de cambios en permisos o roles, ejecutar:
-
-```bash
-npm run seed:roles
-```
-
-Login con el global admin sembrado:
+Ejemplo de login email/password:
 
 ```http
-POST http://localhost:3000/api/auth/login
+POST http://localhost:3000/api/auth/sign-in/email
 Content-Type: application/json
 
 {
@@ -455,23 +390,132 @@ Content-Type: application/json
 }
 ```
 
-## Colección Bruno
+La respuesta establece una cookie de sesión. Los endpoints privados de `identity` esperan esa cookie.
 
-La carpeta `obralink/` contiene la colección local. Usa:
+### Identity
 
-- `baseUrl`
-- `trackingId`
-- `accessToken`
-- `refreshToken`
-- IDs operativos como `tenantId`, `userId`, `actorId`, `roleId`
+- `POST /api/identity/companies`: crea empresa. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/companies`: lista empresas. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/companies/:companyId`: obtiene empresa por id.
+- `PATCH /api/identity/companies/:companyId`: actualiza empresa. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/companies/:companyId/activate`: activa empresa. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/companies/:companyId/suspend`: suspende empresa. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/companies/:companyId/admin`: crea el administrador inicial de empresa. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/users`: crea usuario interno. Requiere `COMPANY_ADMIN`.
+- `GET /api/identity/users?companyId=`: lista usuarios por empresa.
+- `GET /api/identity/users/:userId`: obtiene usuario por id.
+- `PATCH /api/identity/users/:userId`: actualiza usuario.
+- `POST /api/identity/users/:userId/roles`: asigna roles a usuario.
+- `GET /api/identity/roles?companyId=`: lista roles por empresa.
 
-El contexto tenant viene del JWT o de parámetros permitidos para `GLOBAL_ADMIN`.
+## Variables De Entorno
 
-## Verificación
+Crear archivo local:
 
 ```bash
+cp .env.example .env
+```
+
+Variables principales:
+
+```bash
+PORT=3000
+
+DB_HOST=localhost
+DB_PORT=5432
+DB_USERNAME=postgres
+DB_PASSWORD=postgres
+DB_DATABASE=obralink
+DB_LOGGING=false
+
+BETTER_AUTH_APP_NAME=Obralink
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_BASE_PATH=/api/auth
+BETTER_AUTH_SECRET=replace-with-openssl-rand-base64-32
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000,http://localhost:3001
+
+SYSTEM_OWNER_EMAIL=admin@obralink.local
+SYSTEM_OWNER_PASSWORD=Admin123!
+SYSTEM_OWNER_FIRST_NAME=System
+SYSTEM_OWNER_LAST_NAME=Owner
+SYSTEM_OWNER_IDENTIFICATION_NUMBER=0000000000
+```
+
+`BETTER_AUTH_SECRET` debe ser un secreto real en ambientes no locales. Se puede generar con:
+
+```bash
+openssl rand -base64 32
+```
+
+## Ejecucion Local
+
+Setup de base de datos, migraciones y seeds:
+
+```bash
+npm install
+npm run setup
+npm run start:dev
+```
+
+Flujo completo con setup + watch:
+
+```bash
+npm run start:local
+```
+
+Comandos utiles:
+
+```bash
+npm run db:up
+npm run db:down
+npm run db:logs
+npm run migration:show
+npm run migration:run
+npm run migration:revert
+npm run seed:roles
+npm run seed:system-owner
+npm run seed:run
 npm run build
 ```
 
+<<<<<<< HEAD
 El script de lint está definido, pero requiere una configuración `eslint.config.*` compatible con ESLint 9 para poder ejecutarse.
 # obralink-backend
+=======
+## Trazabilidad Y Logs
+
+Header opcional:
+
+```http
+x-tracking-id: 8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a
+```
+
+- Si se envía, debe ser UUID.
+- Si no se envía, la API genera un UUID.
+- La API devuelve `x-tracking-id` en response headers.
+- El tracking id se propaga mediante `AsyncLocalStorage`.
+
+## Excepciones
+
+`AllExceptionsFilter` estandariza respuestas de error:
+
+```json
+{
+  "statusCode": 400,
+  "code": "BAD_REQUEST",
+  "message": "x-tracking-id must be a UUID",
+  "trackingId": "8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a",
+  "path": "/api/identity/users",
+  "timestamp": "2026-06-02T00:00:00.000Z"
+}
+```
+
+## Verificacion
+
+```bash
+npm run build
+npm audit --audit-level=high
+```
+
+El script de lint existe, pero requiere agregar `eslint.config.*` compatible con ESLint 9 para ejecutarse.
+>>>>>>> feature/inicial

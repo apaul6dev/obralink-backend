@@ -1,0 +1,26 @@
+info:
+  name: List Companies
+  type: http
+  seq: 2
+  tags:
+    - companies
+    - platform
+
+http:
+  method: GET
+  url: "{{baseUrl}}/identity/companies"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Requires `SYSTEM_OWNER`.
+
+  Response includes company profile fields: `taxId`, `contactName`, `email`, `phone`, `address`, `city`, `state`, `customerType`, `industry`, `billingEmail`, `paymentTerms`, `customerStatus`, and `assignedAccountManager`.
+  Copy a returned `id` into the `companyId` environment variable before running get/update/activate/suspend requests.

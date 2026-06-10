@@ -1,0 +1,47 @@
+info:
+  name: Create Company
+  type: http
+  seq: 1
+  tags:
+    - companies
+    - platform
+
+http:
+  method: POST
+  url: "{{baseUrl}}/identity/companies"
+  headers:
+    - name: Content-Type
+      value: application/json
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  body:
+    type: json
+    data: |-
+      {
+        "name": "Acme Build",
+        "legalName": "Acme Build Legal LLC",
+        "taxId": "{{companyTaxId}}",
+        "contactName": "Morgan Lee",
+        "email": "morgan.lee@acmebuild.com",
+        "phone": "+1 555 0100",
+        "address": "100 Main St",
+        "city": "Miami",
+        "state": "FL",
+        "customerType": "General Contractor",
+        "industry": "Construction",
+        "billingEmail": "billing@acmebuild.com",
+        "paymentTerms": "Net 30",
+        "customerStatus": "LEAD",
+        "assignedAccountManager": "Alex Johnson"
+      }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: |-
+  Requires `SYSTEM_OWNER`.
+
+  `customerStatus` accepts `LEAD` or `CUSTOMER`.

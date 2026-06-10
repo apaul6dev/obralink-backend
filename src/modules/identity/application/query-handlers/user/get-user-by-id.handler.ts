@@ -3,14 +3,14 @@ import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
 import { User } from '../../../domain/entities/user.entity';
 import { USER_REPOSITORY } from '../../../domain/repositories/repository-tokens';
 import { UserRepository } from '../../../domain/repositories/user.repository.interface';
-import { TenantAccessPolicyService } from '../../../domain/services/tenant-access-policy.service';
+import { CompanyAccessPolicyService } from '../../../domain/services/company-access-policy.service';
 import { GetUserByIdQuery } from '../../queries/user/get-user-by-id.query';
 
 @QueryHandler(GetUserByIdQuery)
 export class GetUserByIdHandler implements IQueryHandler<GetUserByIdQuery> {
   constructor(
     @Inject(USER_REPOSITORY) private readonly userRepository: UserRepository,
-    private readonly accessPolicy: TenantAccessPolicyService,
+    private readonly accessPolicy: CompanyAccessPolicyService,
   ) {}
 
   async execute(query: GetUserByIdQuery): Promise<User> {
@@ -18,8 +18,8 @@ export class GetUserByIdHandler implements IQueryHandler<GetUserByIdQuery> {
     if (!user) {
       throw new NotFoundException('User not found.');
     }
-    if (user.tenantId) {
-      this.accessPolicy.assertTenantAccess(query.currentUser, user.tenantId);
+    if (user.companyId) {
+      this.accessPolicy.assertCompanyAccess(query.currentUser, user.companyId);
     } else {
       this.accessPolicy.assertPlatformAccess(query.currentUser);
     }

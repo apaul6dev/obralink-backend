@@ -25,13 +25,10 @@ http:
           "{{roleId}}"
         ]
       }
-  auth:
-    type: bearer
-    token: "{{accessToken}}"
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
 docs: |-
-  Requires `TENANT_ADMIN` and `identity.users.roles.assign`.
+  Requires `COMPANY_ADMIN` and `identity.users.roles.assign`.

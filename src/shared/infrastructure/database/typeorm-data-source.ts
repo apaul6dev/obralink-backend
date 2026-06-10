@@ -1,8 +1,9 @@
 import 'dotenv/config';
 import { DataSource } from 'typeorm';
 import { appOrmEntities } from './typeorm.config';
-import { CreateAuthSchema1780272000002 } from '../../../modules/auth/infrastructure/persistence/typeorm/migrations/1780272000002-create-auth-schema';
-import { CreateIdentitySchema1780272000001 } from '../../../modules/identity/infrastructure/persistence/typeorm/migrations/1780272000001-create-identity-schema';
+import { Setup1780272000001 } from './migrations/setup';
+import { AddBetterAuth1780272000002 } from './migrations/add-better-auth';
+import { AddMenuManagement1780272000003 } from './migrations/add-menu-management';
 
 export default new DataSource({
   type: 'postgres',
@@ -12,6 +13,6 @@ export default new DataSource({
   password: process.env.DB_PASSWORD ?? 'postgres',
   database: process.env.DB_DATABASE ?? 'obralink',
   entities: appOrmEntities,
-  migrations: [CreateIdentitySchema1780272000001, CreateAuthSchema1780272000002],
+  migrations: [Setup1780272000001, AddBetterAuth1780272000002, AddMenuManagement1780272000003],
   synchronize: false,
 });

@@ -1,99 +1,91 @@
 import { Module } from '@nestjs/common';
 import { CqrsModule } from '@nestjs/cqrs';
-import { PassportModule } from '@nestjs/passport';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { ActivateTenantHandler } from './application/command-handlers/tenant/activate-tenant.handler';
-import { CreateTenantHandler } from './application/command-handlers/tenant/create-tenant.handler';
-import { SuspendTenantHandler } from './application/command-handlers/tenant/suspend-tenant.handler';
-import { UpdateTenantHandler } from './application/command-handlers/tenant/update-tenant.handler';
+import { ActivateCompanyHandler } from './application/command-handlers/company/activate-company.handler';
+import { CreateCompanyAdminHandler } from './application/command-handlers/company/create-company-admin.handler';
+import { CreateCompanyHandler } from './application/command-handlers/company/create-company.handler';
+import { SuspendCompanyHandler } from './application/command-handlers/company/suspend-company.handler';
+import { UpdateCompanyHandler } from './application/command-handlers/company/update-company.handler';
 import { AssignRolesToUserHandler } from './application/command-handlers/user/assign-roles-to-user.handler';
 import { CreateUserHandler } from './application/command-handlers/user/create-user.handler';
 import { UpdateUserHandler } from './application/command-handlers/user/update-user.handler';
-import { AssignRolesToActorHandler } from './application/command-handlers/actor/assign-roles-to-actor.handler';
-import { CreateActorHandler } from './application/command-handlers/actor/create-actor.handler';
-import { RemoveRolesFromActorHandler } from './application/command-handlers/actor/remove-roles-from-actor.handler';
-import { UpdateActorHandler } from './application/command-handlers/actor/update-actor.handler';
-import { GetActorsByRoleHandler } from './application/query-handlers/actor/get-actors-by-role.handler';
-import { GetActorsByTenantHandler } from './application/query-handlers/actor/get-actors-by-tenant.handler';
-import { GetTenantByIdHandler } from './application/query-handlers/tenant/get-tenant-by-id.handler';
-import { GetTenantsHandler } from './application/query-handlers/tenant/get-tenants.handler';
+import { GetCompanyByIdHandler } from './application/query-handlers/company/get-company-by-id.handler';
+import { GetCompaniesHandler } from './application/query-handlers/company/get-companies.handler';
 import { GetUserByIdHandler } from './application/query-handlers/user/get-user-by-id.handler';
-import { GetUsersByTenantHandler } from './application/query-handlers/user/get-users-by-tenant.handler';
-import { ACTOR_REPOSITORY, PERMISSION_REPOSITORY, ROLE_REPOSITORY, TENANT_REPOSITORY, USER_REPOSITORY } from './domain/repositories/repository-tokens';
-import { TenantAccessPolicyService } from './domain/services/tenant-access-policy.service';
-import { ActorOrmEntity } from './infrastructure/persistence/typeorm/entities/actor.orm-entity';
-import { ActorRoleOrmEntity } from './infrastructure/persistence/typeorm/entities/actor-role.orm-entity';
+import { GetUsersByCompanyHandler } from './application/query-handlers/user/get-users-by-company.handler';
+import { MenuQueryService } from './application/services/menu-query.service';
+import { PERMISSION_REPOSITORY, ROLE_REPOSITORY, COMPANY_REPOSITORY, USER_REPOSITORY } from './domain/repositories/repository-tokens';
+import { CompanyAccessPolicyService } from './domain/services/company-access-policy.service';
 import { PermissionOrmEntity } from './infrastructure/persistence/typeorm/entities/permission.orm-entity';
 import { RoleOrmEntity } from './infrastructure/persistence/typeorm/entities/role.orm-entity';
 import { RolePermissionOrmEntity } from './infrastructure/persistence/typeorm/entities/role-permission.orm-entity';
-import { TenantOrmEntity } from './infrastructure/persistence/typeorm/entities/tenant.orm-entity';
+import { CompanyOrmEntity } from './infrastructure/persistence/typeorm/entities/company.orm-entity';
+import { MenuItemOrmEntity } from './infrastructure/persistence/typeorm/entities/menu-item.orm-entity';
+import { MenuItemPermissionOrmEntity } from './infrastructure/persistence/typeorm/entities/menu-item-permission.orm-entity';
 import { UserOrmEntity } from './infrastructure/persistence/typeorm/entities/user.orm-entity';
 import { UserRoleOrmEntity } from './infrastructure/persistence/typeorm/entities/user-role.orm-entity';
-import { TypeOrmActorRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-actor.repository';
 import { TypeOrmPermissionRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-permission.repository';
 import { TypeOrmRoleRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-role.repository';
-import { TypeOrmTenantRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-tenant.repository';
+import { TypeOrmCompanyRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-company.repository';
 import { TypeOrmUserRepository } from './infrastructure/persistence/typeorm/repositories/typeorm-user.repository';
+import { AuthenticatedIdentityGuard } from './infrastructure/security/authenticated-identity.guard';
+import { IdentityAuthSyncService } from './infrastructure/security/identity-auth-sync.service';
 import { PermissionsGuard } from './infrastructure/security/permissions.guard';
 import { RolesGuard } from './infrastructure/security/roles.guard';
-import { TenantGuard } from './infrastructure/security/tenant.guard';
-import { ActorsController } from './presentation/controllers/actors.controller';
+import { CompanyGuard } from './infrastructure/security/company.guard';
 import { RolesController } from './presentation/controllers/roles.controller';
-import { TenantsController } from './presentation/controllers/tenants.controller';
+import { CompaniesController } from './presentation/controllers/companies.controller';
+import { MenuController } from './presentation/controllers/menu.controller';
 import { UsersController } from './presentation/controllers/users.controller';
 
 const commandHandlers = [
-  CreateTenantHandler,
-  UpdateTenantHandler,
-  ActivateTenantHandler,
-  SuspendTenantHandler,
+  CreateCompanyHandler,
+  CreateCompanyAdminHandler,
+  UpdateCompanyHandler,
+  ActivateCompanyHandler,
+  SuspendCompanyHandler,
   CreateUserHandler,
   UpdateUserHandler,
   AssignRolesToUserHandler,
-  CreateActorHandler,
-  UpdateActorHandler,
-  AssignRolesToActorHandler,
-  RemoveRolesFromActorHandler,
 ];
 
 const queryHandlers = [
-  GetTenantByIdHandler,
-  GetTenantsHandler,
+  GetCompanyByIdHandler,
+  GetCompaniesHandler,
   GetUserByIdHandler,
-  GetUsersByTenantHandler,
-  GetActorsByTenantHandler,
-  GetActorsByRoleHandler,
+  GetUsersByCompanyHandler,
 ];
 
 @Module({
   imports: [
     CqrsModule,
-    PassportModule.register({ defaultStrategy: 'jwt' }),
     TypeOrmModule.forFeature([
-      TenantOrmEntity,
+      CompanyOrmEntity,
       UserOrmEntity,
       RoleOrmEntity,
       PermissionOrmEntity,
       UserRoleOrmEntity,
       RolePermissionOrmEntity,
-      ActorOrmEntity,
-      ActorRoleOrmEntity,
+      MenuItemOrmEntity,
+      MenuItemPermissionOrmEntity,
     ]),
   ],
-  controllers: [TenantsController, UsersController, RolesController, ActorsController],
+  controllers: [CompaniesController, UsersController, RolesController, MenuController],
   providers: [
-    TenantAccessPolicyService,
-    TenantGuard,
+    CompanyAccessPolicyService,
+    MenuQueryService,
+    AuthenticatedIdentityGuard,
+    IdentityAuthSyncService,
+    CompanyGuard,
     RolesGuard,
     PermissionsGuard,
-    { provide: TENANT_REPOSITORY, useClass: TypeOrmTenantRepository },
+    { provide: COMPANY_REPOSITORY, useClass: TypeOrmCompanyRepository },
     { provide: USER_REPOSITORY, useClass: TypeOrmUserRepository },
     { provide: ROLE_REPOSITORY, useClass: TypeOrmRoleRepository },
     { provide: PERMISSION_REPOSITORY, useClass: TypeOrmPermissionRepository },
-    { provide: ACTOR_REPOSITORY, useClass: TypeOrmActorRepository },
     ...commandHandlers,
     ...queryHandlers,
   ],
-  exports: [TENANT_REPOSITORY, USER_REPOSITORY, ROLE_REPOSITORY, PERMISSION_REPOSITORY, ACTOR_REPOSITORY],
+  exports: [COMPANY_REPOSITORY, USER_REPOSITORY, ROLE_REPOSITORY, PERMISSION_REPOSITORY],
 })
 export class IdentityModule {}

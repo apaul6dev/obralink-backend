@@ -3,7 +3,7 @@ import { Status } from '../enums/status.enum';
 export class Role {
   constructor(
     public readonly id: string,
-    public tenantId: string | null,
+    public companyId: string | null,
     public name: string,
     public code: string,
     public status: Status,

@@ -1,0 +1,25 @@
+info:
+  name: Get Company By Id
+  type: http
+  seq: 3
+  tags:
+    - companies
+http:
+  method: GET
+  url: "{{baseUrl}}/identity/companies/{{companyId}}"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  params:
+    - name: companyId
+      value: "{{companyId}}"
+      type: path
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  `SYSTEM_OWNER` can read any company. Company users can read only their own company.
+
+  Response includes company profile fields: `taxId`, `contactName`, `email`, `phone`, `address`, `city`, `state`, `customerType`, `industry`, `billingEmail`, `paymentTerms`, `customerStatus`, and `assignedAccountManager`.

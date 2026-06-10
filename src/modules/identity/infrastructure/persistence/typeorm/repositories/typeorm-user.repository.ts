@@ -57,16 +57,16 @@ export class TypeOrmUserRepository implements UserRepository {
     return rows.map((row) => row.code);
   }
 
-  async findByTenantId(tenantId: string): Promise<User[]> {
-    const users = await this.repository.find({ where: { tenantId }, order: { createdAt: 'DESC' } });
+  async findByCompanyId(companyId: string): Promise<User[]> {
+    const users = await this.repository.find({ where: { companyId }, order: { createdAt: 'DESC' } });
     return users.map(UserMapper.toDomain);
   }
 
-  async assignRoles(userId: string, tenantId: string, roleIds: string[]): Promise<void> {
-    await this.userRoleRepository.delete({ userId, tenantId });
+  async assignRoles(userId: string, companyId: string, roleIds: string[]): Promise<void> {
+    await this.userRoleRepository.delete({ userId, companyId });
     if (roleIds.length === 0) {
       return;
     }
-    await this.userRoleRepository.insert(roleIds.map((roleId) => ({ userId, tenantId, roleId })));
+    await this.userRoleRepository.insert(roleIds.map((roleId) => ({ userId, companyId, roleId })));
   }
 }

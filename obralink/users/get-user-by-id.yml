@@ -14,13 +14,10 @@ http:
     - name: userId
       value: "{{userId}}"
       type: path
-  auth:
-    type: bearer
-    token: "{{accessToken}}"
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
 docs: |-
-  Reads one user by id using tenant access rules.
+  Reads one user by id using company access rules.

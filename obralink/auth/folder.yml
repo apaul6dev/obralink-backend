@@ -1,6 +1,6 @@
 info:
   name: Auth
-  type: folder
-  seq: 0
+  seq: 1
 docs: |-
-  Authentication operations.
+  Better Auth endpoints.
+

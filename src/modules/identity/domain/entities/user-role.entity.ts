@@ -3,7 +3,7 @@ export class UserRole {
     public readonly id: string,
     public userId: string,
     public roleId: string,
-    public tenantId: string,
+    public companyId: string,
     public createdAt: Date,
   ) {}
 }

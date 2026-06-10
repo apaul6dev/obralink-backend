@@ -3,10 +3,10 @@ import { IsEmail, IsEnum, IsOptional, IsString, IsUUID, MaxLength, MinLength } f
 import { UserType } from '../../../domain/enums/user-type.enum';
 
 export class CreateUserDto {
-  @ApiPropertyOptional({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Tenant id for platform operations only. Solo para operaciones de plataforma.' })
+  @ApiPropertyOptional({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Company id for platform operations only. Solo para operaciones de plataforma.' })
   @IsOptional()
   @IsUUID()
-  tenantId?: string;
+  companyId?: string;
 
   @ApiProperty({ example: 'admin@obralink.com', description: 'User email. Correo del usuario.' })
   @IsEmail()
@@ -29,7 +29,7 @@ export class CreateUserDto {
   @MaxLength(100)
   lastName: string;
 
-  @ApiProperty({ enum: UserType, example: UserType.TENANT_ADMIN, description: 'User type. Tipo de usuario.' })
+  @ApiProperty({ enum: UserType, example: UserType.COMPANY_ADMIN, description: 'User type. Tipo de usuario.' })
   @IsEnum(UserType)
   userType: UserType;
 
@@ -38,4 +38,16 @@ export class CreateUserDto {
   @IsString()
   @MaxLength(60)
   identificationNumber?: string;
+
+  @ApiPropertyOptional({ example: 'alice.personal@example.com', description: 'Personal email. Correo personal.' })
+  @IsOptional()
+  @IsEmail()
+  @MaxLength(180)
+  personalEmail?: string;
+
+  @ApiPropertyOptional({ example: '+1 555 123 4567', description: 'Phone number. Número de teléfono.' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  phoneNumber?: string;
 }

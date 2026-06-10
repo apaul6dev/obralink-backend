@@ -2,7 +2,7 @@ opencollection: 1.0.0
 
 info:
   name: Obralink Identity API
-  description: Identity endpoints for tenants, users, roles and business actors.
+  description: Identity endpoints for companies, users, roles and permissions.
 config:
   proxy:
     inherit: true
@@ -25,4 +25,4 @@ docs: |-
 
   Base URL: `{{baseUrl}}`
 
-  Use the `Local` environment and set `accessToken` with a valid JWT before running protected requests.
+  Protected requests use the Better Auth session cookie set by `/api/auth/*`.

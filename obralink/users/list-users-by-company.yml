@@ -1,0 +1,24 @@
+info:
+  name: List Users By Company
+  type: http
+  seq: 2
+  tags:
+    - users
+http:
+  method: GET
+  url: "{{baseUrl}}/identity/users"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  params:
+    - name: companyId
+      value: "{{companyId}}"
+      type: query
+      disabled: false
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+docs: |-
+  Company users are forced to their active Better Auth organization. `companyId` is useful only for `SYSTEM_OWNER`.

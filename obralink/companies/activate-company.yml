@@ -1,0 +1,26 @@
+info:
+  name: Activate Company
+  type: http
+  seq: 5
+  tags:
+    - companies
+    - platform
+
+http:
+  method: PATCH
+  url: "{{baseUrl}}/identity/companies/{{companyId}}/activate"
+  headers:
+    - name: x-tracking-id
+      value: "{{trackingId}}"
+  params:
+    - name: companyId
+      value: "{{companyId}}"
+      type: path
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: Requires `SYSTEM_OWNER`.

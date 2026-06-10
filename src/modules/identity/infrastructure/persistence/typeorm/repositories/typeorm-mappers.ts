@@ -1,26 +1,59 @@
-import { Actor } from '../../../../domain/entities/actor.entity';
 import { Permission } from '../../../../domain/entities/permission.entity';
 import { Role } from '../../../../domain/entities/role.entity';
-import { Tenant } from '../../../../domain/entities/tenant.entity';
+import { Company } from '../../../../domain/entities/company.entity';
 import { User } from '../../../../domain/entities/user.entity';
-import { ActorOrmEntity } from '../entities/actor.orm-entity';
 import { PermissionOrmEntity } from '../entities/permission.orm-entity';
 import { RoleOrmEntity } from '../entities/role.orm-entity';
-import { TenantOrmEntity } from '../entities/tenant.orm-entity';
+import { CompanyOrmEntity } from '../entities/company.orm-entity';
 import { UserOrmEntity } from '../entities/user.orm-entity';
 
-export const TenantMapper = {
-  toDomain(entity: TenantOrmEntity): Tenant {
-    return new Tenant(entity.id, entity.name, entity.legalName, entity.identificationNumber, entity.status, entity.createdAt, entity.updatedAt, entity.deletedAt);
+export const CompanyMapper = {
+  toDomain(entity: CompanyOrmEntity): Company {
+    return new Company(
+      entity.id,
+      entity.name,
+      entity.legalName,
+      entity.taxId,
+      entity.contactName,
+      entity.email,
+      entity.phone,
+      entity.address,
+      entity.city,
+      entity.state,
+      entity.customerType,
+      entity.industry,
+      entity.billingEmail,
+      entity.paymentTerms,
+      entity.customerStatus,
+      entity.assignedAccountManager,
+      entity.status,
+      entity.createdAt,
+      entity.updatedAt,
+      entity.deletedAt,
+    );
   },
-  toOrm(domain: Tenant): TenantOrmEntity {
-    return Object.assign(new TenantOrmEntity(), domain);
+  toOrm(domain: Company): CompanyOrmEntity {
+    return Object.assign(new CompanyOrmEntity(), domain);
   },
 };
 
 export const UserMapper = {
   toDomain(entity: UserOrmEntity): User {
-    return new User(entity.id, entity.tenantId, entity.email, entity.passwordHash, entity.firstName, entity.lastName, entity.userType, entity.status, entity.identificationNumber, entity.createdAt, entity.updatedAt, entity.deletedAt);
+    return new User(
+      entity.id,
+      entity.companyId,
+      entity.email,
+      entity.firstName,
+      entity.lastName,
+      entity.userType,
+      entity.status,
+      entity.identificationNumber,
+      entity.personalEmail,
+      entity.phoneNumber,
+      entity.createdAt,
+      entity.updatedAt,
+      entity.deletedAt,
+    );
   },
   toOrm(domain: User): UserOrmEntity {
     return Object.assign(new UserOrmEntity(), domain);
@@ -29,7 +62,7 @@ export const UserMapper = {
 
 export const RoleMapper = {
   toDomain(entity: RoleOrmEntity): Role {
-    return new Role(entity.id, entity.tenantId, entity.name, entity.code, entity.status, entity.createdAt, entity.updatedAt, entity.deletedAt);
+    return new Role(entity.id, entity.companyId, entity.name, entity.code, entity.status, entity.createdAt, entity.updatedAt, entity.deletedAt);
   },
   toOrm(domain: Role): RoleOrmEntity {
     return Object.assign(new RoleOrmEntity(), domain);
@@ -42,14 +75,5 @@ export const PermissionMapper = {
   },
   toOrm(domain: Permission): PermissionOrmEntity {
     return Object.assign(new PermissionOrmEntity(), domain);
-  },
-};
-
-export const ActorMapper = {
-  toDomain(entity: ActorOrmEntity): Actor {
-    return new Actor(entity.id, entity.tenantId, entity.type, entity.name, entity.email, entity.identificationNumber, entity.phone, entity.status, entity.createdAt, entity.updatedAt, entity.deletedAt);
-  },
-  toOrm(domain: Actor): ActorOrmEntity {
-    return Object.assign(new ActorOrmEntity(), domain);
   },
 };

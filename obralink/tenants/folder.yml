@@ -1,6 +1,0 @@
-info:
-  name: Tenants
-  type: folder
-  seq: 1
-docs: |-
-  Tenant platform operations.

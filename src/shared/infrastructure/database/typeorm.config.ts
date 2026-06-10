@@ -1,39 +1,27 @@
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
-import { AuthEventOrmEntity } from '../../../modules/auth/infrastructure/persistence/typeorm/entities/auth-event.orm-entity';
-import { PasswordResetTokenOrmEntity } from '../../../modules/auth/infrastructure/persistence/typeorm/entities/password-reset-token.orm-entity';
-import { RefreshTokenOrmEntity } from '../../../modules/auth/infrastructure/persistence/typeorm/entities/refresh-token.orm-entity';
-import { UserSessionOrmEntity } from '../../../modules/auth/infrastructure/persistence/typeorm/entities/user-session.orm-entity';
-import { ActorOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/actor.orm-entity';
-import { ActorRoleOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/actor-role.orm-entity';
 import { PermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/permission.orm-entity';
 import { RoleOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/role.orm-entity';
 import { RolePermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/role-permission.orm-entity';
-import { TenantOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/tenant.orm-entity';
+import { CompanyOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/company.orm-entity';
+import { MenuItemOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/menu-item.orm-entity';
+import { MenuItemPermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/menu-item-permission.orm-entity';
 import { UserOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/user.orm-entity';
 import { UserRoleOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/user-role.orm-entity';
 
 export const identityOrmEntities = [
-  TenantOrmEntity,
+  CompanyOrmEntity,
   UserOrmEntity,
   RoleOrmEntity,
   PermissionOrmEntity,
   UserRoleOrmEntity,
   RolePermissionOrmEntity,
-  ActorOrmEntity,
-  ActorRoleOrmEntity,
-];
-
-export const authOrmEntities = [
-  UserSessionOrmEntity,
-  RefreshTokenOrmEntity,
-  PasswordResetTokenOrmEntity,
-  AuthEventOrmEntity,
+  MenuItemOrmEntity,
+  MenuItemPermissionOrmEntity,
 ];
 
 export const appOrmEntities = [
   ...identityOrmEntities,
-  ...authOrmEntities,
 ];
 
 export function typeOrmConfigFactory(configService: ConfigService): TypeOrmModuleOptions {

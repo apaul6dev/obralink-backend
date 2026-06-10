@@ -23,15 +23,14 @@ http:
         "firstName": "Updated",
         "lastName": "User",
         "identificationNumber": "0912345678",
+        "personalEmail": "updated.personal@example.com",
+        "phoneNumber": "+1 555 765 4321",
         "status": "ACTIVE"
       }
-  auth:
-    type: bearer
-    token: "{{accessToken}}"
 settings:
   encodeUrl: true
   timeout: 0
   followRedirects: true
   maxRedirects: 5
 docs: |-
-  Requires `GLOBAL_ADMIN` or `TENANT_ADMIN` and `identity.users.update`.
+  Requires `COMPANY_ADMIN` and `identity.users.update`.

@@ -1,6 +1,6 @@
 # Resumen De API
 
-Todas las rutas usan el prefijo global `/api`. Los endpoints privados requieren Bearer JWT.
+Todas las rutas usan el prefijo global `/api`. Los endpoints privados de `identity` requieren cookie de sesion Better Auth.
 
 Swagger/OpenAPI:
 
@@ -10,79 +10,60 @@ GET /api/docs
 
 ## Headers
 
-Header opcional para correlación:
+Header opcional para correlacion:
 
 ```http
 x-tracking-id: 8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a
 ```
 
-Si se envía, debe ser UUID. Si no se envía, el backend genera uno y lo devuelve en response headers.
+Si se envia, debe ser UUID. Si no se envia, el backend genera uno y lo devuelve en response headers.
 
 ## Auth
 
-- `POST /api/auth/login`: inicia sesión. Público.
-- `POST /api/auth/refresh-token`: rota refresh token y emite nuevo access token. Público.
-- `POST /api/auth/logout`: revoca la sesión actual.
-- `POST /api/auth/logout-all`: revoca todas las sesiones activas del usuario.
-- `POST /api/auth/forgot-password`: solicita recuperación de contraseña. Público.
-- `POST /api/auth/reset-password`: restablece contraseña con token. Público.
-- `POST /api/auth/change-password`: cambia contraseña del usuario autenticado.
-- `GET /api/auth/me`: devuelve el usuario autenticado.
-- `GET /api/auth/sessions`: lista sesiones activas del usuario autenticado.
+La autenticacion la maneja Better Auth bajo `/api/auth/*`.
 
-`login`, `refresh-token` y `me` devuelven un bloque `ui` para el frontend:
+Endpoint comun de login email/password:
 
-```json
-{
-  "ui": {
-    "screens": ["dashboard", "users", "actors"],
-    "actions": ["users.create", "actors.update"]
-  }
-}
+```text
+POST /api/auth/sign-in/email
 ```
 
-## Identity - Tenants
+El login establece una cookie de sesion. La empresa activa para usuarios de empresa se toma de `ba_session.active_organization_id`.
 
-- `POST /api/identity/tenants`: crea tenant. Requiere `GLOBAL_ADMIN`.
-- `GET /api/identity/tenants`: lista tenants. Requiere `GLOBAL_ADMIN`.
-- `GET /api/identity/tenants/:tenantId`: obtiene tenant por id.
-- `PATCH /api/identity/tenants/:tenantId`: actualiza tenant. Requiere `GLOBAL_ADMIN`.
-- `PATCH /api/identity/tenants/:tenantId/activate`: activa tenant. Requiere `GLOBAL_ADMIN`.
-- `PATCH /api/identity/tenants/:tenantId/suspend`: suspende tenant. Requiere `GLOBAL_ADMIN`.
+El registro público `/api/auth/sign-up/email` está deshabilitado. Los usuarios se crean desde `POST /api/identity/users`.
+
+## Identity - Companies
+
+- `POST /api/identity/companies`: crea empresa. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/companies`: lista empresas. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/companies/:companyId`: obtiene empresa por id.
+- `PATCH /api/identity/companies/:companyId`: actualiza empresa. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/companies/:companyId/activate`: activa empresa. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/companies/:companyId/suspend`: suspende empresa. Requiere `SYSTEM_OWNER`.
 
 ## Identity - Users
 
-- `POST /api/identity/users`: crea usuario. Requiere `GLOBAL_ADMIN` o `TENANT_ADMIN` y permiso `identity.users.create`.
-- `GET /api/identity/users?tenantId=`: lista usuarios por tenant. Usuarios tenant quedan restringidos al tenant del JWT.
+- `POST /api/identity/companies/:companyId/admin`: crea el administrador inicial de empresa. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/users`: crea usuario interno. Requiere `COMPANY_ADMIN`.
+- `GET /api/identity/users?companyId=`: lista usuarios por empresa.
 - `GET /api/identity/users/:userId`: obtiene usuario por id.
 - `PATCH /api/identity/users/:userId`: actualiza usuario.
-- `POST /api/identity/users/:userId/roles`: asigna roles a un usuario tenant.
-
-## Identity - Actors
-
-- `POST /api/identity/actors`: crea actor de negocio en el tenant autenticado.
-- `GET /api/identity/actors?tenantId=`: lista actores por tenant. Usuarios tenant quedan restringidos al tenant del JWT.
-- `GET /api/identity/actors/by-role/:roleId?tenantId=`: lista actores por rol.
-- `PATCH /api/identity/actors/:actorId`: actualiza actor.
-- `POST /api/identity/actors/:actorId/roles`: asigna roles al actor.
-- `POST /api/identity/actors/:actorId/roles/remove`: remueve roles del actor.
+- `POST /api/identity/users/:userId/roles`: asigna roles a un usuario.
 
 ## Identity - Roles
 
-- `GET /api/identity/roles?tenantId=`: lista roles por tenant. Usuarios tenant quedan restringidos al tenant del JWT.
+- `GET /api/identity/roles?companyId=`: lista roles por empresa.
 
-## JWT
+## Sesion Esperada En Identity
 
-Payload esperado por guards y políticas:
+`AuthenticatedIdentityGuard` transforma la sesion Better Auth a:
 
 ```json
 {
-  "sub": "user-id",
-  "email": "user@domain.com",
-  "userType": "GLOBAL_ADMIN | TENANT_ADMIN | TENANT_USER",
-  "tenantId": "tenant-id-or-null",
-  "roles": ["role-code"],
-  "permissions": ["identity.actors.read"],
-  "sessionId": "session-id"
+  "id": "user-id",
+  "userType": "SYSTEM_OWNER | COMPANY_ADMIN | COMPANY_USER",
+  "companyId": "active-organization-id-or-null",
+  "roles": ["company.admin"],
+  "permissions": ["identity.users.read"]
 }
 ```

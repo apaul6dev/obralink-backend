@@ -48,6 +48,6 @@ export class AppLogger extends ConsoleLogger {
       return message;
     }
 
-    return `${message} trackingId=${context.trackingId} userId=${context.userId ?? 'anonymous'} tenantId=${context.tenantId ?? 'none'} path=${context.method} ${context.path}`;
+    return `${message} trackingId=${context.trackingId} userId=${context.userId ?? 'anonymous'} companyId=${context.companyId ?? 'none'} path=${context.method} ${context.path}`;
   }
 }

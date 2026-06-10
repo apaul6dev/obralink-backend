@@ -5,7 +5,7 @@ import { AppModule } from './app.module';
 import { AppLogger } from './shared/infrastructure/logger/app-logger.service';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, { bufferLogs: true, bodyParser: false });
   app.useLogger(app.get(AppLogger));
   const logger = new Logger('Bootstrap');
   app.setGlobalPrefix('api');
@@ -19,17 +19,13 @@ async function bootstrap(): Promise<void> {
 
   const swaggerConfig = new DocumentBuilder()
     .setTitle('Obralink Identity API')
-    .setDescription('Identity, tenants, users, roles, permissions and business actors API. API de identidad, tenants, usuarios, roles, permisos y actores de negocio.')
+    .setDescription('Identity, companies, users, roles and permissions API. API de identidad, empresas, usuarios, roles y permisos.')
     .setVersion('0.1.0')
-    .addBearerAuth(
-      {
-        type: 'http',
-        scheme: 'bearer',
-        bearerFormat: 'JWT',
-        description: 'JWT access token. Token JWT de acceso.',
-      },
-      'jwt',
-    )
+    .addCookieAuth('better-auth.session_token', {
+      type: 'apiKey',
+      in: 'cookie',
+      description: 'Better Auth session cookie. Cookie de sesion de Better Auth.',
+    }, 'better-auth-session')
     .build();
 
   const swaggerDocument = SwaggerModule.createDocument(app, swaggerConfig);

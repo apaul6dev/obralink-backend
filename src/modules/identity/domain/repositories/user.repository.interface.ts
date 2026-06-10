@@ -6,6 +6,6 @@ export interface UserRepository {
   findByEmail(email: string): Promise<User | null>;
   findRoleCodesByUserId(userId: string): Promise<string[]>;
   findPermissionCodesByUserId(userId: string): Promise<string[]>;
-  findByTenantId(tenantId: string): Promise<User[]>;
-  assignRoles(userId: string, tenantId: string, roleIds: string[]): Promise<void>;
+  findByCompanyId(companyId: string): Promise<User[]>;
+  assignRoles(userId: string, companyId: string, roleIds: string[]): Promise<void>;
 }

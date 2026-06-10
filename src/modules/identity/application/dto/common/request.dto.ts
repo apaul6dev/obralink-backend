@@ -1,17 +1,11 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsOptional, IsUUID } from 'class-validator';
 
-export class TenantQueryDto {
-  @ApiPropertyOptional({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Tenant id. ID del tenant.' })
+export class CompanyQueryDto {
+  @ApiPropertyOptional({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Company id. ID de la empresa.' })
   @IsOptional()
   @IsUUID()
-  tenantId?: string;
-}
-
-export class ActorIdParamDto {
-  @ApiProperty({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Actor id. ID del actor.' })
-  @IsUUID()
-  actorId: string;
+  companyId?: string;
 }
 
 export class RoleIdParamDto {
@@ -20,10 +14,10 @@ export class RoleIdParamDto {
   roleId: string;
 }
 
-export class TenantIdParamDto {
-  @ApiProperty({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Tenant id. ID del tenant.' })
+export class CompanyIdParamDto {
+  @ApiProperty({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Company id. ID de la empresa.' })
   @IsUUID()
-  tenantId: string;
+  companyId: string;
 }
 
 export class UserIdParamDto {

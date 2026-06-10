@@ -1,4 +1,4 @@
-import { AuthenticatedIdentity } from '../../../domain/services/tenant-access-policy.service';
+import { AuthenticatedIdentity } from '../../../domain/services/company-access-policy.service';
 import { UpdateUserDto } from '../../dto/user/update-user.dto';
 
 export class UpdateUserCommand {

@@ -1,27 +1,24 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Status } from '../../../../domain/enums/status.enum';
 import { UserType } from '../../../../domain/enums/user-type.enum';
-import { TenantOrmEntity } from './tenant.orm-entity';
+import { CompanyOrmEntity } from './company.orm-entity';
 
 @Entity({ name: 'users' })
-@Index('uq_users_tenant_email_active', ['tenantId', 'email'], { unique: true, where: 'deleted_at IS NULL' })
-@Index('uq_users_tenant_identification_active', ['tenantId', 'identificationNumber'], { unique: true, where: 'deleted_at IS NULL AND identification_number IS NOT NULL' })
+@Index('uq_users_company_email_active', ['companyId', 'email'], { unique: true, where: 'deleted_at IS NULL' })
+@Index('uq_users_company_identification_active', ['companyId', 'identificationNumber'], { unique: true, where: 'deleted_at IS NULL AND identification_number IS NOT NULL' })
 export class UserOrmEntity {
   @PrimaryGeneratedColumn('uuid')
   id: string;
 
-  @Column({ name: 'tenant_id', type: 'uuid', nullable: true })
-  tenantId: string | null;
+  @Column({ name: 'company_id', type: 'uuid', nullable: true })
+  companyId: string | null;
 
-  @ManyToOne(() => TenantOrmEntity, { nullable: true, onDelete: 'RESTRICT' })
-  @JoinColumn({ name: 'tenant_id' })
-  tenant?: TenantOrmEntity | null;
+  @ManyToOne(() => CompanyOrmEntity, { nullable: true, onDelete: 'RESTRICT' })
+  @JoinColumn({ name: 'company_id' })
+  company?: CompanyOrmEntity | null;
 
   @Column({ type: 'varchar', length: 180 })
   email: string;
-
-  @Column({ name: 'password_hash', type: 'varchar', length: 255 })
-  passwordHash: string;
 
   @Column({ name: 'first_name', type: 'varchar', length: 100 })
   firstName: string;
@@ -37,6 +34,12 @@ export class UserOrmEntity {
 
   @Column({ name: 'identification_number', type: 'varchar', length: 60, nullable: true })
   identificationNumber: string | null;
+
+  @Column({ name: 'personal_email', type: 'varchar', length: 180, nullable: true })
+  personalEmail: string | null;
+
+  @Column({ name: 'phone_number', type: 'varchar', length: 40, nullable: true })
+  phoneNumber: string | null;
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt: Date;

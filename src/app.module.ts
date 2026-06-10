@@ -2,8 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthModule as BetterAuthModule } from '@thallesp/nestjs-better-auth';
 import { HealthController } from './health.controller';
-import { AuthModule } from './modules/auth/auth.module';
+import { betterAuthConfig } from './modules/better-auth/better-auth.config';
 import { IdentityModule } from './modules/identity/identity.module';
 import { typeOrmConfigFactory } from './shared/infrastructure/database/typeorm.config';
 import { RequestContextModule } from './shared/infrastructure/context/request-context.module';
@@ -20,7 +21,11 @@ import { RequestTracingInterceptor } from './shared/infrastructure/tracing/reque
       inject: [ConfigService],
       useFactory: typeOrmConfigFactory,
     }),
-    AuthModule,
+    BetterAuthModule.forRoot({
+      auth: betterAuthConfig,
+      isGlobal: true,
+      disableGlobalAuthGuard: true,
+    }),
     IdentityModule,
   ],
   controllers: [HealthController],

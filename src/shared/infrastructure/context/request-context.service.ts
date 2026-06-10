@@ -6,7 +6,7 @@ export interface RequestContextData {
   method: string;
   path: string;
   userId: string | null;
-  tenantId: string | null;
+  companyId: string | null;
 }
 
 @Injectable()
