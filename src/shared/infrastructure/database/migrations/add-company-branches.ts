@@ -26,12 +26,14 @@ export class AddCompanyBranches1780272000004 implements MigrationInterface {
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS ix_company_branches_company_status ON company_branches (company_id, status) WHERE deleted_at IS NULL`);
     await queryRunner.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS branch_id uuid REFERENCES company_branches(id) ON DELETE SET NULL`);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS ix_users_company_branch ON users (company_id, branch_id) WHERE deleted_at IS NULL`);
+    await queryRunner.query(`ALTER TABLE ba_user ADD COLUMN IF NOT EXISTS company_id text`);
     await queryRunner.query(`ALTER TABLE ba_user ADD COLUMN IF NOT EXISTS branch_id text`);
     await queryRunner.query(`COMMENT ON TABLE company_branches IS 'Company branches used to isolate operational data inside a company.'`);
   }
 
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE ba_user DROP COLUMN IF EXISTS branch_id`);
+    await queryRunner.query(`ALTER TABLE ba_user DROP COLUMN IF EXISTS company_id`);
     await queryRunner.query(`ALTER TABLE users DROP COLUMN IF EXISTS branch_id`);
     await queryRunner.query(`DROP TABLE IF EXISTS company_branches CASCADE`);
   }

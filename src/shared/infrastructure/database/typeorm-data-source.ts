@@ -6,6 +6,7 @@ import { AddBetterAuth1780272000002 } from './migrations/add-better-auth';
 import { AddMenuManagement1780272000003 } from './migrations/add-menu-management';
 import { AddCompanyBranches1780272000004 } from './migrations/add-company-branches';
 import { AddBranchAdminUserType1780272000005 } from './migrations/add-branch-admin-user-type';
+import { AddCompanyIdToBetterAuthUser1780272000006 } from './migrations/add-company-id-to-better-auth-user';
 
 export default new DataSource({
   type: 'postgres',
@@ -21,6 +22,7 @@ export default new DataSource({
     AddMenuManagement1780272000003,
     AddCompanyBranches1780272000004,
     AddBranchAdminUserType1780272000005,
+    AddCompanyIdToBetterAuthUser1780272000006,
   ],
   synchronize: false,
 });

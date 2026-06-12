@@ -68,14 +68,16 @@ async function upsertBetterAuthSystemOwner(userId: string, email: string, firstN
   await dataSource.transaction(async (manager) => {
     await manager.query(
       `
-        INSERT INTO ba_user (id, name, email, email_verified, image, user_type, permissions, created_at, updated_at)
-        VALUES ($1, $2, $3, true, null, $4, $5, now(), now())
+        INSERT INTO ba_user (id, name, email, email_verified, image, user_type, permissions, company_id, branch_id, created_at, updated_at)
+        VALUES ($1, $2, $3, true, null, $4, $5, null, null, now(), now())
         ON CONFLICT (id) DO UPDATE
         SET name = EXCLUDED.name,
             email = EXCLUDED.email,
             email_verified = true,
             user_type = EXCLUDED.user_type,
             permissions = EXCLUDED.permissions,
+            company_id = EXCLUDED.company_id,
+            branch_id = EXCLUDED.branch_id,
             updated_at = now()
       `,
       [userId, `${firstName} ${lastName}`.trim(), email, UserType.SYSTEM_OWNER, []],
