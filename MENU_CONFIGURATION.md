@@ -28,6 +28,191 @@ DELETE /api/identity/menu/admin/:menuItemId
 
 Estos endpoints solo los puede usar `SYSTEM_OWNER`.
 
+## Diagrama de arquitectura
+
+```mermaid
+flowchart LR
+  Owner["SYSTEM_OWNER"] --> Frontend["Frontend Angular Gradus"]
+  User["Usuario autenticado"] --> Frontend
+
+  Frontend --> AuthGuard["authGuard / permissionGuard"]
+  Frontend --> MenuService["MenuService"]
+  Frontend --> MenuAdminService["MenuAdminService"]
+  Frontend --> RolesService["RolesService"]
+  Frontend --> PermissionsService["PermissionsService"]
+
+  MenuService --> MenuApi["GET /api/identity/menu"]
+  MenuAdminService --> MenuAdminApi["/api/identity/menu/admin"]
+  RolesService --> RolesApi["/api/identity/roles"]
+  PermissionsService --> PermissionsApi["/api/identity/permissions"]
+
+  MenuApi --> AuthenticatedGuard["AuthenticatedIdentityGuard"]
+  MenuAdminApi --> OwnerGuard["AuthenticatedIdentityGuard + RolesGuard SYSTEM_OWNER"]
+  RolesApi --> IdentityGuards["Identity guards"]
+  PermissionsApi --> OwnerGuard
+
+  AuthenticatedGuard --> MenuQueryService["MenuQueryService"]
+  OwnerGuard --> MenuAdminServiceBackend["MenuAdminService"]
+  IdentityGuards --> RoleAdminService["RoleAdminService"]
+  OwnerGuard --> PermissionAdminService["PermissionAdminService"]
+
+  MenuQueryService --> DB[(PostgreSQL)]
+  MenuAdminServiceBackend --> DB
+  RoleAdminService --> DB
+  PermissionAdminService --> DB
+
+  DB --> Tables["menu_items, menu_item_permissions, permissions, roles, role_permissions, user_roles"]
+```
+
+## Diagrama de secuencia: carga del menu autorizado
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor User as Usuario autenticado
+  participant FE as Frontend Angular
+  participant MS as MenuService
+  participant API as GET /api/identity/menu
+  participant Guard as AuthenticatedIdentityGuard
+  participant MQ as MenuQueryService
+  participant DB as PostgreSQL
+
+  User->>FE: Inicia sesion o recarga la app
+  FE->>MS: loadAuthorizedMenu()
+  MS->>API: GET /api/identity/menu
+  API->>Guard: Validar sesion Better Auth
+  Guard-->>API: currentUser con userType, companyId y permisos
+  API->>MQ: findAuthorizedMenu(currentUser)
+  MQ->>DB: Leer menu_items activos y permisos requeridos
+  DB-->>MQ: Items de menu + permisos
+  MQ->>DB: Leer permisos efectivos del usuario por roles
+  DB-->>MQ: permission codes
+  MQ-->>API: Items filtrados por userType/permisos
+  API-->>MS: Menu autorizado
+  MS-->>FE: Actualiza sidebar/header menu
+```
+
+## Diagrama de secuencia: crear una opcion de menu
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Owner as SYSTEM_OWNER
+  participant FE as Pantalla Menu
+  participant API as POST /api/identity/menu/admin
+  participant Guard as AuthenticatedIdentityGuard + RolesGuard
+  participant Admin as MenuAdminService
+  participant DB as PostgreSQL
+
+  Owner->>FE: Completa formulario de nuevo item
+  FE->>API: POST payload menu
+  API->>Guard: Validar sesion y rol SYSTEM_OWNER
+  Guard-->>API: Acceso permitido
+  API->>Admin: create(payload)
+  Admin->>DB: Verificar code unico
+  Admin->>DB: Verificar parentId si existe
+  Admin->>DB: Verificar permissionIds si existen
+  Admin->>DB: INSERT menu_items
+  Admin->>DB: INSERT menu_item_permissions
+  DB-->>Admin: Item creado
+  Admin-->>API: MenuAdminItem
+  API-->>FE: Respuesta OK
+  FE->>FE: Refresca tabla de menu
+```
+
+## Diagrama ER del menu
+
+```mermaid
+erDiagram
+  menu_items ||--o{ menu_items : "parent_id"
+  menu_items ||--o{ menu_item_permissions : "menu_item_id"
+  permissions ||--o{ menu_item_permissions : "permission_id"
+  permissions ||--o{ role_permissions : "permission_id"
+  roles ||--o{ role_permissions : "role_id"
+  roles ||--o{ user_roles : "role_id"
+  users ||--o{ user_roles : "user_id"
+  companies ||--o{ roles : "company_id"
+  companies ||--o{ users : "company_id"
+
+  menu_items {
+    uuid id PK
+    varchar code UK
+    varchar title_key
+    varchar router_link
+    varchar href
+    varchar icon
+    varchar target
+    uuid parent_id FK
+    int display_order
+    user_type_enum_array allowed_user_types
+    status_enum status
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
+  }
+
+  menu_item_permissions {
+    uuid id PK
+    uuid menu_item_id FK
+    uuid permission_id FK
+    timestamptz created_at
+  }
+
+  permissions {
+    uuid id PK
+    varchar code UK
+    varchar description
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
+  }
+
+  roles {
+    uuid id PK
+    uuid company_id FK
+    varchar name
+    varchar code
+    status_enum status
+    timestamptz created_at
+    timestamptz updated_at
+    timestamptz deleted_at
+  }
+
+  role_permissions {
+    uuid id PK
+    uuid role_id FK
+    uuid permission_id FK
+    uuid company_id
+    timestamptz created_at
+  }
+
+  user_roles {
+    uuid id PK
+    uuid user_id FK
+    uuid role_id FK
+    uuid company_id
+    timestamptz created_at
+  }
+
+  users {
+    uuid id PK
+    uuid company_id FK
+    varchar email
+    varchar first_name
+    varchar last_name
+    user_type_enum user_type
+    status_enum status
+    timestamptz deleted_at
+  }
+
+  companies {
+    uuid id PK
+    varchar name
+    status_enum status
+    timestamptz deleted_at
+  }
+```
+
 ## Campos de una opcion de menu
 
 - `code`: identificador unico interno. Ejemplo: `projects`.
