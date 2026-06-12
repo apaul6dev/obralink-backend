@@ -60,8 +60,26 @@ const menuSeeds: MenuSeed[] = [
     icon: 'verified_user',
     parentCode: 'administration',
     displayOrder: 30,
-    allowedUserTypes: [UserType.COMPANY_ADMIN, UserType.COMPANY_USER],
+    allowedUserTypes: [UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.COMPANY_USER],
     permissions: ['ui.roles.view'],
+  },
+  {
+    code: 'menu-management',
+    titleKey: 'nav.menuManagement',
+    routerLink: '/menu-management',
+    icon: 'menu_open',
+    parentCode: 'administration',
+    displayOrder: 40,
+    allowedUserTypes: [UserType.SYSTEM_OWNER],
+  },
+  {
+    code: 'permissions',
+    titleKey: 'nav.permissions',
+    routerLink: '/permissions',
+    icon: 'key',
+    parentCode: 'administration',
+    displayOrder: 50,
+    allowedUserTypes: [UserType.SYSTEM_OWNER],
   },
 ];
 

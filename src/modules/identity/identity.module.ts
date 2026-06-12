@@ -13,7 +13,10 @@ import { GetCompanyByIdHandler } from './application/query-handlers/company/get-
 import { GetCompaniesHandler } from './application/query-handlers/company/get-companies.handler';
 import { GetUserByIdHandler } from './application/query-handlers/user/get-user-by-id.handler';
 import { GetUsersByCompanyHandler } from './application/query-handlers/user/get-users-by-company.handler';
+import { MenuAdminService } from './application/services/menu-admin.service';
 import { MenuQueryService } from './application/services/menu-query.service';
+import { PermissionAdminService } from './application/services/permission-admin.service';
+import { RoleAdminService } from './application/services/role-admin.service';
 import { PERMISSION_REPOSITORY, ROLE_REPOSITORY, COMPANY_REPOSITORY, USER_REPOSITORY } from './domain/repositories/repository-tokens';
 import { CompanyAccessPolicyService } from './domain/services/company-access-policy.service';
 import { PermissionOrmEntity } from './infrastructure/persistence/typeorm/entities/permission.orm-entity';
@@ -34,6 +37,7 @@ import { PermissionsGuard } from './infrastructure/security/permissions.guard';
 import { RolesGuard } from './infrastructure/security/roles.guard';
 import { CompanyGuard } from './infrastructure/security/company.guard';
 import { RolesController } from './presentation/controllers/roles.controller';
+import { PermissionsController } from './presentation/controllers/permissions.controller';
 import { CompaniesController } from './presentation/controllers/companies.controller';
 import { MenuController } from './presentation/controllers/menu.controller';
 import { UsersController } from './presentation/controllers/users.controller';
@@ -70,10 +74,13 @@ const queryHandlers = [
       MenuItemPermissionOrmEntity,
     ]),
   ],
-  controllers: [CompaniesController, UsersController, RolesController, MenuController],
+  controllers: [CompaniesController, UsersController, RolesController, PermissionsController, MenuController],
   providers: [
     CompanyAccessPolicyService,
+    MenuAdminService,
     MenuQueryService,
+    PermissionAdminService,
+    RoleAdminService,
     AuthenticatedIdentityGuard,
     IdentityAuthSyncService,
     CompanyGuard,

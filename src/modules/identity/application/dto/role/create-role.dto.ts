@@ -1,5 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { IsArray, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
+import { Status } from '../../../domain/enums/status.enum';
 
 export class CreateRoleDto {
   @ApiPropertyOptional({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Company id for platform operations. ID de la empresa para operaciones de plataforma.' })
@@ -16,4 +17,15 @@ export class CreateRoleDto {
   @IsString()
   @MaxLength(120)
   code: string;
+
+  @ApiPropertyOptional({ enum: Status, example: Status.ACTIVE, description: 'Role status. Estado del rol.' })
+  @IsOptional()
+  @IsEnum(Status)
+  status?: Status;
+
+  @ApiPropertyOptional({ type: [String], description: 'Permission ids assigned to this role. IDs de permisos asignados al rol.' })
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  permissionIds?: string[];
 }

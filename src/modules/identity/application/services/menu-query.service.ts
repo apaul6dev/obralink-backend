@@ -2,6 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { Status } from '../../domain/enums/status.enum';
+import { UserType } from '../../domain/enums/user-type.enum';
 import { AuthenticatedIdentity } from '../../domain/services/company-access-policy.service';
 
 export interface AuthorizedMenuItem {
@@ -100,6 +101,9 @@ export class MenuQueryService {
 
     const requiredPermissions = row.permissions ?? [];
     if (requiredPermissions.length === 0) {
+      return true;
+    }
+    if (currentUser.userType === UserType.SYSTEM_OWNER) {
       return true;
     }
 
