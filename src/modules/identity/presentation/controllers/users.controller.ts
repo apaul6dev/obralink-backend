@@ -29,7 +29,7 @@ export class UsersController {
   constructor(private readonly commandBus: CommandBus, private readonly queryBus: QueryBus) {}
 
   @Post()
-  @Roles(UserType.COMPANY_ADMIN)
+  @Roles(UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
   @Permissions('identity.users.create')
   @ApiOperation({ summary: 'Create user / Crear usuario' })
   async create(@CurrentUser() currentUser: AuthenticatedIdentity, @Body() payload: CreateUserDto) {
@@ -38,7 +38,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN)
+  @Roles(UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
   @Permissions('identity.users.read')
   @ApiOperation({ summary: 'List users by company / Listar usuarios por empresa' })
   async findByCompany(@CurrentUser() currentUser: AuthenticatedIdentity, @Query() query: CompanyQueryDto) {
@@ -55,7 +55,7 @@ export class UsersController {
   }
 
   @Patch(':userId')
-  @Roles(UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN)
+  @Roles(UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
   @Permissions('identity.users.update')
   @ApiOperation({ summary: 'Update user / Actualizar usuario' })
   async update(@CurrentUser() currentUser: AuthenticatedIdentity, @Param() params: UserIdParamDto, @Body() payload: UpdateUserDto) {
@@ -64,7 +64,7 @@ export class UsersController {
   }
 
   @Post(':userId/roles')
-  @Roles(UserType.COMPANY_ADMIN)
+  @Roles(UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
   @Permissions('identity.users.roles.assign')
   @ApiOperation({ summary: 'Assign roles to user / Asignar roles a usuario' })
   async assignRoles(@CurrentUser() currentUser: AuthenticatedIdentity, @Param() params: UserIdParamDto, @Body() payload: AssignRolesToUserDto) {

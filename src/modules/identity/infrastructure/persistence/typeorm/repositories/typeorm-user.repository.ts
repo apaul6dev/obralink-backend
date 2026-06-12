@@ -57,8 +57,11 @@ export class TypeOrmUserRepository implements UserRepository {
     return rows.map((row) => row.code);
   }
 
-  async findByCompanyId(companyId: string): Promise<User[]> {
-    const users = await this.repository.find({ where: { companyId }, order: { createdAt: 'DESC' } });
+  async findByCompanyId(companyId: string, branchId?: string | null): Promise<User[]> {
+    const users = await this.repository.find({
+      where: branchId ? { companyId, branchId } : { companyId },
+      order: { createdAt: 'DESC' },
+    });
     return users.map(UserMapper.toDomain);
   }
 

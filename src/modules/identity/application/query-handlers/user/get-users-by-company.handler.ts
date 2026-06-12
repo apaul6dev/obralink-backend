@@ -15,6 +15,7 @@ export class GetUsersByCompanyHandler implements IQueryHandler<GetUsersByCompany
 
   async execute(query: GetUsersByCompanyQuery): Promise<User[]> {
     const companyId = this.accessPolicy.resolveCompanyIdForCompanyOperation(query.currentUser, query.companyId);
-    return this.userRepository.findByCompanyId(companyId);
+    const branchId = this.accessPolicy.resolveBranchIdForCompanyRead(query.currentUser);
+    return this.userRepository.findByCompanyId(companyId, branchId);
   }
 }

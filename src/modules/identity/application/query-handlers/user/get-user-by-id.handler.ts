@@ -20,6 +20,7 @@ export class GetUserByIdHandler implements IQueryHandler<GetUserByIdQuery> {
     }
     if (user.companyId) {
       this.accessPolicy.assertCompanyAccess(query.currentUser, user.companyId);
+      this.accessPolicy.assertBranchAccess(query.currentUser, user.companyId, user.branchId);
     } else {
       this.accessPolicy.assertPlatformAccess(query.currentUser);
     }

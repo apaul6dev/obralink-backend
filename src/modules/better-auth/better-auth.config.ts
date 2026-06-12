@@ -47,6 +47,11 @@ export const betterAuthConfig = betterAuth({
         defaultValue: [],
         fieldName: 'permissions',
       },
+      branchId: {
+        type: 'string',
+        required: false,
+        fieldName: 'branch_id',
+      },
     },
   },
   session: {

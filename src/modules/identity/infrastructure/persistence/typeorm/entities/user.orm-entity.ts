@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, Index, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
 import { Status } from '../../../../domain/enums/status.enum';
 import { UserType } from '../../../../domain/enums/user-type.enum';
+import { CompanyBranchOrmEntity } from './company-branch.orm-entity';
 import { CompanyOrmEntity } from './company.orm-entity';
 
 @Entity({ name: 'users' })
@@ -16,6 +17,13 @@ export class UserOrmEntity {
   @ManyToOne(() => CompanyOrmEntity, { nullable: true, onDelete: 'RESTRICT' })
   @JoinColumn({ name: 'company_id' })
   company?: CompanyOrmEntity | null;
+
+  @Column({ name: 'branch_id', type: 'uuid', nullable: true })
+  branchId: string | null;
+
+  @ManyToOne(() => CompanyBranchOrmEntity, { nullable: true, onDelete: 'SET NULL' })
+  @JoinColumn({ name: 'branch_id' })
+  branch?: CompanyBranchOrmEntity | null;
 
   @Column({ type: 'varchar', length: 180 })
   email: string;

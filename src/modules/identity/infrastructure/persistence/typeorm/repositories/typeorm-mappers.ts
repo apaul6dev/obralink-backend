@@ -42,6 +42,7 @@ export const UserMapper = {
     return new User(
       entity.id,
       entity.companyId,
+      entity.branchId,
       entity.email,
       entity.firstName,
       entity.lastName,

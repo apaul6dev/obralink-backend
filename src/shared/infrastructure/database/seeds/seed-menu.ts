@@ -50,8 +50,18 @@ const menuSeeds: MenuSeed[] = [
     icon: 'group',
     parentCode: 'administration',
     displayOrder: 20,
-    allowedUserTypes: [UserType.COMPANY_ADMIN],
+    allowedUserTypes: [UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN],
     permissions: ['ui.users.view'],
+  },
+  {
+    code: 'branches',
+    titleKey: 'nav.branches',
+    routerLink: '/branches',
+    icon: 'account_tree',
+    parentCode: 'administration',
+    displayOrder: 25,
+    allowedUserTypes: [UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN, UserType.COMPANY_USER],
+    permissions: ['ui.branches.view'],
   },
   {
     code: 'roles',
@@ -60,7 +70,7 @@ const menuSeeds: MenuSeed[] = [
     icon: 'verified_user',
     parentCode: 'administration',
     displayOrder: 30,
-    allowedUserTypes: [UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.COMPANY_USER],
+    allowedUserTypes: [UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN, UserType.COMPANY_USER],
     permissions: ['ui.roles.view'],
   },
   {

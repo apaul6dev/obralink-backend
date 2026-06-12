@@ -36,6 +36,7 @@ export class CreateCompanyAdminHandler implements ICommandHandler<CreateCompanyA
       new User(
         randomUUID(),
         company.id,
+        null,
         command.payload.email.toLowerCase(),
         command.payload.firstName,
         command.payload.lastName,
@@ -58,6 +59,7 @@ export class CreateCompanyAdminHandler implements ICommandHandler<CreateCompanyA
       lastName: user.lastName,
       userType: user.userType,
       companyId: user.companyId,
+      branchId: user.branchId,
       permissions,
     });
 

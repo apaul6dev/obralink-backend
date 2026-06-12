@@ -1,9 +1,10 @@
-import { Inject, Logger, NotFoundException } from '@nestjs/common';
+import { ForbiddenException, Inject, Logger, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { ROLE_REPOSITORY, USER_REPOSITORY } from '../../../domain/repositories/repository-tokens';
 import { RoleRepository } from '../../../domain/repositories/role.repository.interface';
 import { UserRepository } from '../../../domain/repositories/user.repository.interface';
 import { CompanyAccessPolicyService } from '../../../domain/services/company-access-policy.service';
+import { UserType } from '../../../domain/enums/user-type.enum';
 import { IdentityAuthSyncService } from '../../../infrastructure/security/identity-auth-sync.service';
 import { AssignRolesToUserCommand } from '../../commands/user/assign-roles-to-user.command';
 
@@ -24,9 +25,14 @@ export class AssignRolesToUserHandler implements ICommandHandler<AssignRolesToUs
       throw new NotFoundException('Company user not found.');
     }
     this.accessPolicy.assertCompanyAccess(command.currentUser, user.companyId);
+    this.accessPolicy.assertBranchAccess(command.currentUser, user.companyId, user.branchId);
     for (const roleId of command.roleIds) {
       if (!(await this.roleRepository.existsInCompany(roleId, user.companyId))) {
         throw new NotFoundException(`Role ${roleId} not found in company.`);
+      }
+      const role = await this.roleRepository.findById(roleId);
+      if (command.currentUser.userType === UserType.BRANCH_ADMIN && role?.code === 'company.admin') {
+        throw new ForbiddenException('Branch admins cannot assign company admin role.');
       }
     }
     await this.userRepository.assignRoles(user.id, user.companyId, command.roleIds);

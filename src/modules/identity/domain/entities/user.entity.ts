@@ -5,6 +5,7 @@ export class User {
   constructor(
     public readonly id: string,
     public companyId: string | null,
+    public branchId: string | null,
     public email: string,
     public firstName: string,
     public lastName: string,
@@ -20,5 +21,9 @@ export class User {
 
   belongsToCompany(companyId: string): boolean {
     return this.companyId === companyId;
+  }
+
+  belongsToBranch(branchId: string): boolean {
+    return this.branchId === branchId;
   }
 }

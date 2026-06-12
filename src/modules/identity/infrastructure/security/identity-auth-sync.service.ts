@@ -13,6 +13,7 @@ type ProvisionUserInput = {
   userType: UserType;
   permissions?: string[];
   companyId?: string | null;
+  branchId?: string | null;
 };
 
 type ProvisionOrganizationInput = {
@@ -48,16 +49,17 @@ export class IdentityAuthSyncService {
     await this.dataSource.transaction(async (manager) => {
       await manager.query(
         `
-          INSERT INTO ba_user (id, name, email, email_verified, image, user_type, permissions, created_at, updated_at)
-          VALUES ($1, $2, $3, false, null, $4, $5, now(), now())
+          INSERT INTO ba_user (id, name, email, email_verified, image, user_type, permissions, branch_id, created_at, updated_at)
+          VALUES ($1, $2, $3, false, null, $4, $5, $6, now(), now())
           ON CONFLICT (id) DO UPDATE
           SET name = EXCLUDED.name,
               email = EXCLUDED.email,
               user_type = EXCLUDED.user_type,
               permissions = EXCLUDED.permissions,
+              branch_id = EXCLUDED.branch_id,
               updated_at = now()
         `,
-        [input.id, name, normalizedEmail, input.userType, permissions],
+        [input.id, name, normalizedEmail, input.userType, permissions, input.branchId ?? null],
       );
 
       const existingAccount = await manager.query<{ id: string }[]>(

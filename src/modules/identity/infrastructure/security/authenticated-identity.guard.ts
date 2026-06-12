@@ -50,21 +50,23 @@ export class AuthenticatedIdentityGuard implements CanActivate {
 
   private async toAuthenticatedIdentity(session: BetterAuthSession): Promise<AuthenticatedIdentity> {
     const userType = Object.values(UserType).includes(session.user.userType as UserType) ? (session.user.userType as UserType) : UserType.COMPANY_USER;
-    const companyId = session.session.activeOrganizationId ?? await this.findUserCompanyId(session.user.id);
+    const identity = await this.findUserIdentity(session.user.id);
+    const companyId = session.session.activeOrganizationId ?? identity.companyId;
 
     return {
       id: session.user.id,
       userType,
       companyId,
+      branchId: identity.branchId,
       roles: this.normalizeRoles(session.user.role),
       permissions: Array.isArray(session.user.permissions) ? session.user.permissions : [],
     };
   }
 
-  private async findUserCompanyId(userId: string): Promise<string | null> {
-    const rows = await this.dataSource.query<Array<{ company_id: string | null }>>(
+  private async findUserIdentity(userId: string): Promise<{ companyId: string | null; branchId: string | null }> {
+    const rows = await this.dataSource.query<Array<{ company_id: string | null; branch_id: string | null }>>(
       `
-        SELECT company_id
+        SELECT company_id, branch_id
         FROM users
         WHERE id = $1
           AND deleted_at IS NULL
@@ -73,7 +75,10 @@ export class AuthenticatedIdentityGuard implements CanActivate {
       [userId],
     );
 
-    return rows[0]?.company_id ?? null;
+    return {
+      companyId: rows[0]?.company_id ?? null,
+      branchId: rows[0]?.branch_id ?? null,
+    };
   }
 
   private normalizeRoles(role?: string | string[]): string[] {

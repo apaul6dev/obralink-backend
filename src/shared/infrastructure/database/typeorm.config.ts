@@ -3,6 +3,7 @@ import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { PermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/permission.orm-entity';
 import { RoleOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/role.orm-entity';
 import { RolePermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/role-permission.orm-entity';
+import { CompanyBranchOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/company-branch.orm-entity';
 import { CompanyOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/company.orm-entity';
 import { MenuItemOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/menu-item.orm-entity';
 import { MenuItemPermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/menu-item-permission.orm-entity';
@@ -11,6 +12,7 @@ import { UserRoleOrmEntity } from '../../../modules/identity/infrastructure/pers
 
 export const identityOrmEntities = [
   CompanyOrmEntity,
+  CompanyBranchOrmEntity,
   UserOrmEntity,
   RoleOrmEntity,
   PermissionOrmEntity,

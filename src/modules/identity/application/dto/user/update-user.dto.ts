@@ -1,8 +1,13 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsEmail, IsEnum, IsOptional, IsString, MaxLength } from 'class-validator';
+import { IsEmail, IsEnum, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 import { Status } from '../../../domain/enums/status.enum';
 
 export class UpdateUserDto {
+  @ApiPropertyOptional({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', nullable: true, description: 'Branch id. ID de sucursal.' })
+  @IsOptional()
+  @IsUUID()
+  branchId?: string | null;
+
   @ApiPropertyOptional({ example: 'Alice', description: 'First name. Nombre.' })
   @IsOptional()
   @IsString()

@@ -8,6 +8,11 @@ export class CreateUserDto {
   @IsUUID()
   companyId?: string;
 
+  @ApiPropertyOptional({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Branch id for operational users. ID de sucursal para usuarios operativos.' })
+  @IsOptional()
+  @IsUUID()
+  branchId?: string | null;
+
   @ApiProperty({ example: 'admin@obralink.com', description: 'User email. Correo del usuario.' })
   @IsEmail()
   @MaxLength(180)

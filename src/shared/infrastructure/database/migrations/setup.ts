@@ -36,7 +36,7 @@ export class Setup1780272000001 implements MigrationInterface {
     `);
     await queryRunner.query(`
       DO $$ BEGIN
-        CREATE TYPE user_type_enum AS ENUM ('SYSTEM_OWNER', 'COMPANY_ADMIN', 'COMPANY_USER');
+        CREATE TYPE user_type_enum AS ENUM ('SYSTEM_OWNER', 'COMPANY_ADMIN', 'BRANCH_ADMIN', 'COMPANY_USER');
       EXCEPTION
         WHEN duplicate_object THEN null;
       END $$;
