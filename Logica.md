@@ -76,6 +76,8 @@ flowchart TD
     AJ --> AK([Fin])
 ```
 
+Nota: en este diagrama `Generar proforma` representa la generacion de una version formal presentable al cliente. El registro inicial de la proforma se crea antes, en estado `DRAFT`, al crear la oportunidad comercial.
+
 ## Plan De Implementacion
 
 ### Objetivo
@@ -105,22 +107,234 @@ Procesos:
 Entidades sugeridas:
 
 - `Client`
+- `ClientContact`
 - `Opportunity`
 - `ProjectClassification`
 - `OpportunityRequirementSummary`
 - `Proforma`
+- `ProformaVersion`
 - `ProformaLine`
 - `CommercialNegotiation`
+- `CommercialNegotiationItem`
 
 Eventos sugeridos:
 
 - `ClientRegistered`
 - `OpportunityCreated`
 - `OpportunityClassified`
+- `ProformaDraftCreated`
 - `ProformaGenerated`
+- `ProformaSent`
 - `ProformaRejected`
+- `CommercialNegotiationStarted`
+- `CommercialNegotiationAccepted`
+- `ProformaVersionCreated`
 - `ProformaApproved`
 - `OpportunityLost`
+
+Gestion de proformas:
+
+La proforma tiene dos momentos distintos:
+
+- Creacion de proforma borrador.
+- Generacion de proforma presentable al cliente.
+
+Al crear una oportunidad comercial, el sistema debe crear automaticamente una proforma inicial en estado `DRAFT`. Esta proforma funciona como contenedor de alcance, cantidades, costos, impuestos, notas comerciales y condiciones que se van completando durante el proceso.
+
+En el diagrama, el paso `Generar proforma` no significa crear el registro inicial, sino convertir la proforma trabajada en una version formal y presentable al cliente.
+
+En el flujo:
+
+```text
+Crear oportunidad comercial
+  -> Crear proforma DRAFT
+  -> Completar analisis tecnico, documental, permisos, subcontratacion y alcance
+  -> Definir alcance interno del trabajo
+  -> Generar version formal de proforma
+  -> Enviar al cliente
+```
+
+Antes de generar una proforma presentable al cliente deben existir, como minimo:
+
+- Cliente registrado.
+- Oportunidad comercial creada.
+- Tipo de proyecto clasificado.
+- Requerimientos base levantados.
+- Condicion de obra nueva o existente identificada.
+- Documentacion tecnica revisada o generada cuando aplique.
+- Permisos necesarios detectados.
+- Costos de subcontratacion integrados cuando aplique.
+- Alcance interno del trabajo definido.
+
+Estados sugeridos para `proformas`:
+
+```text
+DRAFT
+IN_REVIEW
+NEEDS_REVISION
+GENERATED
+SENT
+UNDER_NEGOTIATION
+APPROVED
+REJECTED
+CANCELLED
+```
+
+Reglas:
+
+- `DRAFT`: se crea automaticamente al crear la oportunidad.
+- `IN_REVIEW`: se esta alimentando con visitas, requerimientos, documentos, permisos, costos externos y alcance.
+- `NEEDS_REVISION`: algun cambio tecnico, documental, de permisos, subcontratacion o alcance obliga a revisar.
+- `GENERATED`: el alcance interno esta definido y existe una version formal lista para enviar.
+- `SENT`: la version formal fue enviada al cliente.
+- `UNDER_NEGOTIATION`: el cliente no aprobo y solicito modificaciones.
+- `APPROVED`: el cliente aprobo la version vigente.
+- Antes de `SENT`, se puede editar la version activa.
+- Despues de `SENT`, cualquier cambio debe crear una nueva version.
+- Despues de `APPROVED`, la proforma no se modifica directamente; cualquier cambio debe generar una nueva version o una solicitud formal de cambio.
+
+Versionado sugerido:
+
+```text
+proformas
+  id
+  company_id
+  opportunity_id
+  current_version_id
+  status
+  created_at
+  updated_at
+  deleted_at
+
+proforma_versions
+  id
+  proforma_id
+  version_number
+  status
+  scope_summary
+  internal_cost
+  external_cost
+  subtotal
+  taxes
+  total
+  sent_at
+  approved_at
+  rejected_at
+  created_at
+  updated_at
+```
+
+Negociacion comercial cuando el cliente no aprueba:
+
+Si el cliente no aprueba la proforma final y solicita modificaciones, el proceso sigue en `commercial`; no pasa a `contracts`.
+
+Secuencia:
+
+```text
+Proforma SENT
+  -> Cliente no aprueba
+  -> Proforma UNDER_NEGOTIATION
+  -> Crear commercial_negotiation
+  -> Registrar cambios solicitados
+  -> Evaluar impacto en alcance, costos y tiempos
+  -> Crear nueva version de proforma
+  -> Enviar nueva version al cliente
+  -> Cliente aprueba o rechaza
+```
+
+Tablas sugeridas:
+
+```text
+commercial_negotiations
+  id
+  company_id
+  opportunity_id
+  proforma_id
+  requested_by
+  requested_at
+  reason
+  client_comments
+  status              OPEN | ACCEPTED | REJECTED | CLOSED_LOST
+  created_at
+  updated_at
+  deleted_at
+
+commercial_negotiation_items
+  id
+  negotiation_id
+  change_type         SCOPE | PRICE | TIME | PAYMENT_TERMS | MATERIALS | OTHER
+  description
+  impact_amount
+  impact_days
+  accepted
+  created_at
+  updated_at
+```
+
+Reglas de negociacion:
+
+- Una proforma enviada no se modifica directamente.
+- Si el cliente pide cambios, se registra una negociacion comercial.
+- Si la nueva propuesta es aceptada, se crea una nueva version de proforma y se envia al cliente.
+- Si la nueva propuesta no es aceptada, la oportunidad se cierra como perdida.
+- `contracts` solo inicia cuando una version de proforma esta `APPROVED`.
+
+Especificacion de clientes:
+
+El cliente comercial puede ser una persona natural o una empresa. No debe reutilizarse la tabla `companies` para representar clientes comerciales, porque `companies` representa empresas tenant que usan el sistema. Los clientes comerciales deben vivir en `commercial.clients`.
+
+```text
+companies = empresas usuarias del sistema
+clients   = clientes atendidos por una empresa usuaria
+```
+
+Campos sugeridos para `clients`:
+
+```text
+id
+company_id
+client_type              PERSON | COMPANY
+display_name
+legal_name
+identification_type      CEDULA | RUC | PASSPORT | TAX_ID | OTHER
+identification_number
+email
+phone
+address
+city
+status
+created_at
+updated_at
+deleted_at
+```
+
+Reglas:
+
+- Si `client_type = PERSON`, `display_name` representa el nombre de la persona.
+- Si `client_type = COMPANY`, `display_name` representa el nombre comercial y `legal_name` la razon social.
+- `identification_number` debe ser unico por `company_id` cuando exista y el registro no este eliminado.
+- Toda oportunidad comercial debe apuntar a `client_id`, sin importar si el cliente es persona o empresa.
+
+Campos sugeridos para `client_contacts`:
+
+```text
+id
+client_id
+name
+role
+email
+phone
+is_primary
+created_at
+updated_at
+deleted_at
+```
+
+Reglas de contactos:
+
+- Un cliente tipo `COMPANY` puede tener varios contactos.
+- Un cliente tipo `PERSON` puede tener contactos adicionales, pero no es obligatorio.
+- Solo debe existir un contacto principal por cliente.
 
 #### 2. technical
 
@@ -147,7 +361,37 @@ Eventos sugeridos:
 - `TechnicalVisitScheduled`
 - `TechnicalInspectionCompleted`
 - `RequirementsCollected`
+- `RequirementsChanged`
 - `TechnicalSurveyCompleted`
+- `TechnicalSurveyChanged`
+
+Impacto sobre proformas:
+
+La visita tecnica y el levantamiento tecnico pueden modificar la proforma, pero el modulo `technical` no debe actualizar directamente tablas de `commercial`.
+
+Regla:
+
+- Si una visita tecnica, inspeccion, requerimiento o levantamiento tecnico modifica alcance, cantidades, tiempos, restricciones, costos estimados o condiciones del sitio, `technical` debe emitir un evento.
+- `commercial` debe consumir ese evento y decidir si la oportunidad vuelve a revision de alcance o costeo.
+- Si ya existe una proforma vigente, debe marcarse como `NEEDS_REVISION` o crearse una nueva version.
+- La version anterior de la proforma debe mantenerse como historial.
+- Una proforma `APPROVED` no debe modificarse directamente; cualquier cambio posterior debe generar una nueva version o una solicitud formal de cambio.
+
+Eventos de integracion sugeridos:
+
+- `RequirementsChanged`
+- `TechnicalSurveyChanged`
+- `ProformaRevisionRequired`
+- `ProformaVersionCreated`
+
+Permisos sugeridos:
+
+```text
+technical.requirements.affect_proforma
+technical.surveys.affect_proforma
+commercial.proformas.mark_needs_revision
+commercial.proformas.version
+```
 
 #### 3. documents
 
@@ -335,6 +579,7 @@ src/modules/<module-name>
 commercial
   ClientRegistered
   OpportunityCreated
+  ProformaDraftCreated
   OpportunityClassified
         |
         v
@@ -361,17 +606,24 @@ procurement
         v
 commercial
   ProformaGenerated
+  ProformaSent
+  CommercialNegotiationStarted
+  ProformaVersionCreated
   ProformaApproved
         |
         v
 contracts
-  ContractGenerated
-  ContractSigned
+  ContractNegotiationStarted
         |
         v
 billing
   AdvancePaymentRequested
   AdvancePaymentReceived
+        |
+        v
+contracts
+  ContractGenerated
+  ContractSigned
         |
         v
 projects
@@ -383,10 +635,13 @@ projects
 #### Fase 1: Base Comercial
 
 - Crear modulo `commercial`.
-- Crear entidades `Client`, `Opportunity`, `ProjectClassification` y `Proforma`.
+- Crear entidades `Client`, `ClientContact`, `Opportunity`, `ProjectClassification`, `Proforma`, `ProformaVersion`, `ProformaLine`, `CommercialNegotiation` y `CommercialNegotiationItem`.
 - Crear CRUD inicial de clientes.
 - Crear CRUD inicial de oportunidades.
+- Crear proforma `DRAFT` automaticamente al crear oportunidad.
 - Crear endpoints para clasificar oportunidad.
+- Crear endpoints para versionar, generar y enviar proforma.
+- Crear endpoints para registrar negociacion comercial y generar nueva version cuando el cliente solicita cambios.
 - Crear permisos y menu para clientes, oportunidades y proformas.
 
 #### Fase 2: Visitas Y Requerimientos Tecnicos
@@ -421,19 +676,26 @@ projects
 
 - Crear modulo `contracts`.
 - Crear entidades `Contract`, `ContractVersion` y `ContractNegotiation`.
-- Crear endpoints para negociacion contractual y generacion de contrato.
+- Crear endpoints para iniciar negociacion contractual despues de proforma aprobada.
+- Definir si se requiere anticipo antes de generar contrato.
 
 #### Fase 7: Anticipos Y Cobranza
 
 - Crear modulo `billing`.
 - Crear entidades `AdvancePayment`, `PaymentRequest`, `PaymentRecord` y `CollectionFollowUp`.
 - Crear endpoints para solicitar anticipo y registrar pagos.
+- Notificar a `contracts` cuando el anticipo requerido fue recibido.
 
-#### Fase 8: Creacion De Obra
+#### Fase 8: Generacion Contractual
+
+- Completar endpoints de `contracts` para generar contrato despues de anticipo recibido o cuando no se requiere anticipo.
+- Registrar firma o aceptacion del contrato cuando aplique.
+
+#### Fase 9: Creacion De Obra
 
 - Crear modulo `projects`.
 - Crear entidades `Project`, `WorkSite` y `ProjectScope`.
-- Crear endpoint para crear obra desde contrato firmado.
+- Crear endpoint para crear obra desde contrato generado y aceptado o firmado, segun la regla contractual configurada.
 - Mantener referencias a `clientId`, `opportunityId`, `contractId` y `companyId`.
 
 ### Primer Corte Recomendado
@@ -444,6 +706,7 @@ El primer incremento funcional debe cubrir:
 - Creacion de oportunidad.
 - Clasificacion de oportunidad.
 - Decision de visita tecnica.
-- Generacion basica de proforma.
+- Creacion automatica de proforma `DRAFT`.
+- Generacion basica de una version formal de proforma.
 
 Este corte crea la columna vertebral del flujo sin bloquearse por documentos, permisos, subcontratistas, contratos o pagos.
