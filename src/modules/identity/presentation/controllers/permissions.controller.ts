@@ -17,6 +17,18 @@ import { Roles } from '../decorators/roles.decorator';
 export class PermissionsController {
   constructor(private readonly permissionAdminService: PermissionAdminService) {}
 
+  @Get('catalog')
+  @ApiOperation({ summary: 'Get grouped permission catalog / Obtener catalogo agrupado de permisos' })
+  async findCatalog() {
+    return this.permissionAdminService.findCatalog();
+  }
+
+  @Get('catalog/ui')
+  @ApiOperation({ summary: 'Get grouped UI permission catalog / Obtener catalogo agrupado de permisos UI' })
+  async findUiCatalog() {
+    return this.permissionAdminService.findCatalog('UI');
+  }
+
   @Get()
   @ApiOperation({ summary: 'List permissions / Listar permisos' })
   async findAll() {

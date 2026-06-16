@@ -83,6 +83,16 @@ const menuSeeds: MenuSeed[] = [
     allowedUserTypes: [UserType.SYSTEM_OWNER],
   },
   {
+    code: 'modules',
+    titleKey: 'nav.modules',
+    routerLink: '/modules',
+    icon: 'view_module',
+    parentCode: 'administration',
+    displayOrder: 45,
+    allowedUserTypes: [UserType.SYSTEM_OWNER],
+    permissions: ['ui.modules.view'],
+  },
+  {
     code: 'permissions',
     titleKey: 'nav.permissions',
     routerLink: '/permissions',

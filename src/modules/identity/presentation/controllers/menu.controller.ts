@@ -22,6 +22,20 @@ export class MenuController {
     private readonly menuAdminService: MenuAdminService,
   ) {}
 
+  @Get('admin/tree')
+  @Roles(UserType.SYSTEM_OWNER)
+  @ApiOperation({ summary: 'Get menu tree for administration / Obtener arbol de menu para administracion' })
+  async findTreeForAdmin() {
+    return this.menuAdminService.findTree();
+  }
+
+  @Get('admin/options')
+  @Roles(UserType.SYSTEM_OWNER)
+  @ApiOperation({ summary: 'Get menu administration options / Obtener opciones para administracion de menu' })
+  async findOptionsForAdmin() {
+    return this.menuAdminService.findOptions();
+  }
+
   @Get('admin')
   @Roles(UserType.SYSTEM_OWNER)
   @ApiOperation({ summary: 'List menu items for administration / Listar items de menu para administracion' })

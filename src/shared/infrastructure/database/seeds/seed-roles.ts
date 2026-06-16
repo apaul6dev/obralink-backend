@@ -3,6 +3,7 @@ import { hashPassword } from 'better-auth/crypto';
 import dataSource from '../typeorm-data-source';
 import { Status } from '../../../../modules/identity/domain/enums/status.enum';
 import { UserType } from '../../../../modules/identity/domain/enums/user-type.enum';
+import { AppModuleOrmEntity } from '../../../../modules/identity/infrastructure/persistence/typeorm/entities/app-module.orm-entity';
 import { PermissionOrmEntity } from '../../../../modules/identity/infrastructure/persistence/typeorm/entities/permission.orm-entity';
 import { RolePermissionOrmEntity } from '../../../../modules/identity/infrastructure/persistence/typeorm/entities/role-permission.orm-entity';
 import { RoleOrmEntity } from '../../../../modules/identity/infrastructure/persistence/typeorm/entities/role.orm-entity';
@@ -14,6 +15,19 @@ import { UserRoleOrmEntity } from '../../../../modules/identity/infrastructure/p
 interface PermissionSeed {
   code: string;
   description: string;
+  category: 'API' | 'UI';
+  moduleCode: string;
+  action: string;
+  label: string;
+  isSystem: boolean;
+}
+
+interface AppModuleSeed {
+  code: string;
+  name: string;
+  description: string;
+  icon: string;
+  displayOrder: number;
 }
 
 interface RoleSeed {
@@ -22,55 +36,100 @@ interface RoleSeed {
   permissions: string[];
 }
 
+const appModules: AppModuleSeed[] = [
+  { code: 'dashboard', name: 'Dashboard', description: 'General landing and summary screens.', icon: 'dashboard', displayOrder: 10 },
+  { code: 'companies', name: 'Companies', description: 'Platform company administration.', icon: 'business', displayOrder: 20 },
+  { code: 'branches', name: 'Branches', description: 'Company branch administration.', icon: 'account_tree', displayOrder: 30 },
+  { code: 'users', name: 'Users', description: 'User and access administration.', icon: 'group', displayOrder: 40 },
+  { code: 'roles', name: 'Roles', description: 'Role administration and permission assignment.', icon: 'verified_user', displayOrder: 50 },
+  { code: 'modules', name: 'Modules', description: 'Application module catalog administration.', icon: 'view_module', displayOrder: 60 },
+  { code: 'permissions', name: 'Permissions', description: 'Permission catalog administration.', icon: 'key', displayOrder: 70 },
+  { code: 'menu', name: 'Menu', description: 'Navigation menu administration.', icon: 'menu_open', displayOrder: 80 },
+  { code: 'profile', name: 'Profile', description: 'User profile screens.', icon: 'person', displayOrder: 80 },
+  { code: 'sessions', name: 'Sessions', description: 'Active session screens.', icon: 'devices', displayOrder: 90 },
+];
+
+function apiPermission(moduleCode: string, action: string, label: string, description = `${label}.`): PermissionSeed {
+  return {
+    code: `identity.${moduleCode}.${action}`,
+    description,
+    category: 'API',
+    moduleCode,
+    action,
+    label,
+    isSystem: true,
+  };
+}
+
+function uiPermission(moduleCode: string, action: string, label: string, description = `${label}.`): PermissionSeed {
+  return {
+    code: `ui.${moduleCode}.${action}`,
+    description,
+    category: 'UI',
+    moduleCode,
+    action,
+    label,
+    isSystem: true,
+  };
+}
+
 const apiPermissions: PermissionSeed[] = [
-  { code: 'identity.users.create', description: 'Create users.' },
-  { code: 'identity.users.read', description: 'Read users.' },
-  { code: 'identity.users.update', description: 'Update users.' },
-  { code: 'identity.users.roles.assign', description: 'Assign roles to users.' },
-  { code: 'identity.menu.create', description: 'Create menu items.' },
-  { code: 'identity.menu.read', description: 'Read menu items.' },
-  { code: 'identity.menu.update', description: 'Update menu items.' },
-  { code: 'identity.menu.delete', description: 'Delete menu items.' },
-  { code: 'identity.permissions.create', description: 'Create permissions.' },
-  { code: 'identity.permissions.read', description: 'Read permissions.' },
-  { code: 'identity.permissions.update', description: 'Update permissions.' },
-  { code: 'identity.permissions.delete', description: 'Delete permissions.' },
-  { code: 'identity.roles.create', description: 'Create roles.' },
-  { code: 'identity.roles.read', description: 'Read roles.' },
-  { code: 'identity.roles.update', description: 'Update roles.' },
-  { code: 'identity.roles.delete', description: 'Delete roles.' },
-  { code: 'identity.roles.permissions.assign', description: 'Assign permissions to roles.' },
+  apiPermission('users', 'create', 'Create users'),
+  apiPermission('users', 'read', 'Read users'),
+  apiPermission('users', 'update', 'Update users'),
+  apiPermission('users', 'roles.assign', 'Assign user roles'),
+  apiPermission('menu', 'create', 'Create menu items'),
+  apiPermission('menu', 'read', 'Read menu items'),
+  apiPermission('menu', 'update', 'Update menu items'),
+  apiPermission('menu', 'delete', 'Delete menu items'),
+  apiPermission('modules', 'create', 'Create modules'),
+  apiPermission('modules', 'read', 'Read modules'),
+  apiPermission('modules', 'update', 'Update modules'),
+  apiPermission('modules', 'delete', 'Delete modules'),
+  apiPermission('permissions', 'create', 'Create permissions'),
+  apiPermission('permissions', 'read', 'Read permissions'),
+  apiPermission('permissions', 'update', 'Update permissions'),
+  apiPermission('permissions', 'delete', 'Delete permissions'),
+  apiPermission('roles', 'create', 'Create roles'),
+  apiPermission('roles', 'read', 'Read roles'),
+  apiPermission('roles', 'update', 'Update roles'),
+  apiPermission('roles', 'delete', 'Delete roles'),
+  apiPermission('roles', 'permissions.assign', 'Assign role permissions'),
 ];
 
 const uiPermissions: PermissionSeed[] = [
-  { code: 'ui.dashboard.view', description: 'View dashboard screen.' },
-  { code: 'ui.companies.view', description: 'View companies screen.' },
-  { code: 'ui.companies.create', description: 'Show create company action.' },
-  { code: 'ui.companies.update', description: 'Show update company action.' },
-  { code: 'ui.companies.activate', description: 'Show activate company action.' },
-  { code: 'ui.companies.suspend', description: 'Show suspend company action.' },
-  { code: 'ui.branches.view', description: 'View branches screen.' },
-  { code: 'ui.branches.create', description: 'Show create branch action.' },
-  { code: 'ui.branches.update', description: 'Show update branch action.' },
-  { code: 'ui.branches.delete', description: 'Show delete branch action.' },
-  { code: 'ui.users.view', description: 'View users screen.' },
-  { code: 'ui.users.create', description: 'Show create user action.' },
-  { code: 'ui.users.update', description: 'Show update user action.' },
-  { code: 'ui.users.assign_roles', description: 'Show assign user roles action.' },
-  { code: 'ui.roles.view', description: 'View roles screen.' },
-  { code: 'ui.roles.create', description: 'Show create role action.' },
-  { code: 'ui.roles.update', description: 'Show update role action.' },
-  { code: 'ui.roles.delete', description: 'Show delete role action.' },
-  { code: 'ui.menu.view', description: 'View menu management screen.' },
-  { code: 'ui.menu.create', description: 'Show create menu action.' },
-  { code: 'ui.menu.update', description: 'Show update menu action.' },
-  { code: 'ui.menu.delete', description: 'Show delete menu action.' },
-  { code: 'ui.permissions.view', description: 'View permissions screen.' },
-  { code: 'ui.permissions.create', description: 'Show create permission action.' },
-  { code: 'ui.permissions.update', description: 'Show update permission action.' },
-  { code: 'ui.permissions.delete', description: 'Show delete permission action.' },
-  { code: 'ui.profile.view', description: 'View profile screen.' },
-  { code: 'ui.sessions.view', description: 'View active sessions screen.' },
+  uiPermission('dashboard', 'view', 'View dashboard'),
+  uiPermission('companies', 'view', 'View companies'),
+  uiPermission('companies', 'create', 'Show create company action'),
+  uiPermission('companies', 'update', 'Show update company action'),
+  uiPermission('companies', 'activate', 'Show activate company action'),
+  uiPermission('companies', 'suspend', 'Show suspend company action'),
+  uiPermission('branches', 'view', 'View branches'),
+  uiPermission('branches', 'create', 'Show create branch action'),
+  uiPermission('branches', 'update', 'Show update branch action'),
+  uiPermission('branches', 'delete', 'Show delete branch action'),
+  uiPermission('users', 'view', 'View users'),
+  uiPermission('users', 'create', 'Show create user action'),
+  uiPermission('users', 'update', 'Show update user action'),
+  uiPermission('users', 'assign_roles', 'Show assign user roles action'),
+  uiPermission('roles', 'view', 'View roles'),
+  uiPermission('roles', 'create', 'Show create role action'),
+  uiPermission('roles', 'update', 'Show update role action'),
+  uiPermission('roles', 'delete', 'Show delete role action'),
+  uiPermission('menu', 'view', 'View menu management'),
+  uiPermission('menu', 'create', 'Show create menu action'),
+  uiPermission('menu', 'update', 'Show update menu action'),
+  uiPermission('menu', 'delete', 'Show delete menu action'),
+  uiPermission('modules', 'view', 'View modules'),
+  uiPermission('modules', 'create', 'Show create module action'),
+  uiPermission('modules', 'update', 'Show update module action'),
+  uiPermission('modules', 'delete', 'Show delete module action'),
+  uiPermission('permissions', 'view', 'View permissions'),
+  uiPermission('permissions', 'create', 'Show create permission action'),
+  uiPermission('permissions', 'update', 'Show update permission action'),
+  uiPermission('permissions', 'delete', 'Show delete permission action'),
+  uiPermission('profile', 'view', 'View profile'),
+  uiPermission('sessions', 'view', 'View active sessions'),
 ];
 
 const permissions: PermissionSeed[] = [...apiPermissions, ...uiPermissions];
@@ -174,11 +233,45 @@ const companyRoles: RoleSeed[] = [
 const localUserPassword = 'Admin123!';
 const localCompanyTaxIds = ['1790010001001', '0990010002001', '0190010003001'];
 
-async function upsertPermissions(): Promise<Map<string, PermissionOrmEntity>> {
+async function upsertAppModules(): Promise<Map<string, AppModuleOrmEntity>> {
+  const moduleRepository = dataSource.getRepository(AppModuleOrmEntity);
+  const moduleByCode = new Map<string, AppModuleOrmEntity>();
+
+  for (const seed of appModules) {
+    let appModule = await moduleRepository.findOne({
+      where: { code: seed.code },
+      withDeleted: true,
+    });
+
+    if (!appModule) {
+      appModule = moduleRepository.create({ code: seed.code });
+    }
+
+    appModule.name = seed.name;
+    appModule.description = seed.description;
+    appModule.icon = seed.icon;
+    appModule.displayOrder = seed.displayOrder;
+    appModule.status = Status.ACTIVE;
+    appModule.isSystem = true;
+    appModule.deletedAt = null;
+
+    const saved = await moduleRepository.save(appModule);
+    moduleByCode.set(saved.code, saved);
+  }
+
+  return moduleByCode;
+}
+
+async function upsertPermissions(moduleByCode: Map<string, AppModuleOrmEntity>): Promise<Map<string, PermissionOrmEntity>> {
   const permissionRepository = dataSource.getRepository(PermissionOrmEntity);
   const permissionByCode = new Map<string, PermissionOrmEntity>();
 
   for (const seed of permissions) {
+    const appModule = moduleByCode.get(seed.moduleCode);
+    if (!appModule) {
+      throw new Error(`App module seed is missing: ${seed.moduleCode}`);
+    }
+
     let permission = await permissionRepository.findOne({
       where: { code: seed.code },
       withDeleted: true,
@@ -190,6 +283,12 @@ async function upsertPermissions(): Promise<Map<string, PermissionOrmEntity>> {
     } else {
       permission = permissionRepository.create(seed);
     }
+
+    permission.category = seed.category;
+    permission.moduleId = appModule.id;
+    permission.action = seed.action;
+    permission.label = seed.label;
+    permission.isSystem = seed.isSystem;
 
     const saved = await permissionRepository.save(permission);
     permissionByCode.set(saved.code, saved);
@@ -260,7 +359,8 @@ async function seedRoleSet(companyId: string | null, permissionByCode: Map<strin
 async function seedRoles(): Promise<void> {
   await dataSource.initialize();
 
-  const permissionByCode = await upsertPermissions();
+  const moduleByCode = await upsertAppModules();
+  const permissionByCode = await upsertPermissions(moduleByCode);
   await seedRoleSet(null, permissionByCode);
 
   const companies = await dataSource.getRepository(CompanyOrmEntity).find({
@@ -273,6 +373,7 @@ async function seedRoles(): Promise<void> {
     await seedUsersForCompanyRoles(company);
   }
 
+  console.log(`Modules seeded: ${moduleByCode.size}`);
   console.log(`Permissions seeded: ${permissionByCode.size}`);
   console.log(`Global role templates seeded: ${companyRoles.length}`);
   console.log(`Company role sets seeded: ${companies.length}`);

@@ -13,6 +13,7 @@ import { GetCompanyByIdHandler } from './application/query-handlers/company/get-
 import { GetCompaniesHandler } from './application/query-handlers/company/get-companies.handler';
 import { GetUserByIdHandler } from './application/query-handlers/user/get-user-by-id.handler';
 import { GetUsersByCompanyHandler } from './application/query-handlers/user/get-users-by-company.handler';
+import { AppModuleAdminService } from './application/services/app-module-admin.service';
 import { CompanyBranchAdminService } from './application/services/company-branch-admin.service';
 import { MenuAdminService } from './application/services/menu-admin.service';
 import { MenuQueryService } from './application/services/menu-query.service';
@@ -21,6 +22,7 @@ import { RoleAdminService } from './application/services/role-admin.service';
 import { PERMISSION_REPOSITORY, ROLE_REPOSITORY, COMPANY_REPOSITORY, USER_REPOSITORY } from './domain/repositories/repository-tokens';
 import { CompanyAccessPolicyService } from './domain/services/company-access-policy.service';
 import { PermissionOrmEntity } from './infrastructure/persistence/typeorm/entities/permission.orm-entity';
+import { AppModuleOrmEntity } from './infrastructure/persistence/typeorm/entities/app-module.orm-entity';
 import { RoleOrmEntity } from './infrastructure/persistence/typeorm/entities/role.orm-entity';
 import { RolePermissionOrmEntity } from './infrastructure/persistence/typeorm/entities/role-permission.orm-entity';
 import { CompanyBranchOrmEntity } from './infrastructure/persistence/typeorm/entities/company-branch.orm-entity';
@@ -38,6 +40,7 @@ import { IdentityAuthSyncService } from './infrastructure/security/identity-auth
 import { PermissionsGuard } from './infrastructure/security/permissions.guard';
 import { RolesGuard } from './infrastructure/security/roles.guard';
 import { CompanyGuard } from './infrastructure/security/company.guard';
+import { AppModulesController } from './presentation/controllers/app-modules.controller';
 import { RolesController } from './presentation/controllers/roles.controller';
 import { PermissionsController } from './presentation/controllers/permissions.controller';
 import { CompanyBranchesController } from './presentation/controllers/company-branches.controller';
@@ -71,6 +74,7 @@ const queryHandlers = [
       CompanyBranchOrmEntity,
       UserOrmEntity,
       RoleOrmEntity,
+      AppModuleOrmEntity,
       PermissionOrmEntity,
       UserRoleOrmEntity,
       RolePermissionOrmEntity,
@@ -78,9 +82,10 @@ const queryHandlers = [
       MenuItemPermissionOrmEntity,
     ]),
   ],
-  controllers: [CompaniesController, CompanyBranchesController, UsersController, RolesController, PermissionsController, MenuController],
+  controllers: [CompaniesController, CompanyBranchesController, UsersController, RolesController, PermissionsController, AppModulesController, MenuController],
   providers: [
     CompanyAccessPolicyService,
+    AppModuleAdminService,
     CompanyBranchAdminService,
     MenuAdminService,
     MenuQueryService,

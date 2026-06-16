@@ -20,6 +20,12 @@ export class PermissionIdParamDto {
   permissionId: string;
 }
 
+export class AppModuleIdParamDto {
+  @ApiProperty({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Module id. ID del modulo.' })
+  @IsUUID()
+  moduleId: string;
+}
+
 export class MenuItemIdParamDto {
   @ApiProperty({ example: '0f1f66b6-7e0d-4cb0-a04e-3c2ecdcf0205', description: 'Menu item id. ID del item de menu.' })
   @IsUUID()

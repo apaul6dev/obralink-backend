@@ -86,9 +86,18 @@ El registro publico `/api/auth/sign-up/email` esta deshabilitado. Los usuarios s
 - `POST /api/identity/roles/:roleId/permissions`: asigna permisos al rol. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/roles/:roleId`: elimina rol con borrado logico. Requiere `SYSTEM_OWNER`.
 
+## Identity - Modules
+
+- `GET /api/identity/modules`: lista modulos funcionales. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/modules`: crea modulo funcional. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/modules/:moduleId`: actualiza modulo funcional. Requiere `SYSTEM_OWNER`.
+- `DELETE /api/identity/modules/:moduleId`: elimina modulo funcional con borrado logico. Requiere `SYSTEM_OWNER`.
+
 ## Identity - Permissions
 
 - `GET /api/identity/permissions`: lista permisos. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/permissions/catalog`: obtiene permisos agrupados por categoria y modulo. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/permissions/catalog/ui`: obtiene solo permisos UI agrupados por modulo. Requiere `SYSTEM_OWNER`.
 - `POST /api/identity/permissions`: crea permiso. Requiere `SYSTEM_OWNER`.
 - `PATCH /api/identity/permissions/:permissionId`: actualiza permiso. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/permissions/:permissionId`: elimina permiso con borrado logico. Requiere `SYSTEM_OWNER`.
@@ -97,6 +106,8 @@ El registro publico `/api/auth/sign-up/email` esta deshabilitado. Los usuarios s
 
 - `GET /api/identity/menu`: obtiene menu autorizado para el usuario autenticado.
 - `GET /api/identity/menu/admin`: lista items de menu para administracion. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/menu/admin/tree`: obtiene arbol de menu para administracion. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/menu/admin/options`: obtiene opciones para el formulario de menu. Requiere `SYSTEM_OWNER`.
 - `POST /api/identity/menu/admin`: crea item de menu. Requiere `SYSTEM_OWNER`.
 - `PATCH /api/identity/menu/admin/:menuItemId`: actualiza item de menu. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/menu/admin/:menuItemId`: elimina item de menu con borrado logico. Requiere `SYSTEM_OWNER`.
@@ -106,10 +117,12 @@ El registro publico `/api/auth/sign-up/email` esta deshabilitado. Los usuarios s
 - Autenticacion y cierre de sesion con Better Auth.
 - Resolucion de identidad autenticada, empresa activa y sucursal.
 - CRUD operativo de empresas, sucursales, roles, permisos y menu.
+- Catalogo agrupado de permisos por `app_modules`, `category`, `action` y `label`.
 - Gestion de usuarios de empresa y sucursal.
 - Asignacion de roles a usuarios.
 - Asignacion de permisos a roles.
 - Sincronizacion de permisos efectivos hacia `ba_user.permissions`.
 - Consulta de menu filtrado por tipo de usuario y permisos.
+- CRUD de menu con permisos UI agrupados y validacion de ciclos de jerarquia.
 - Seeds de empresa base, roles/permisos, menu y `SYSTEM_OWNER`.
 - Migraciones para identity, Better Auth, menu, sucursales y `BRANCH_ADMIN`.

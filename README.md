@@ -10,6 +10,7 @@ El backend implementa:
 - Sesiones por cookie administradas por Better Auth.
 - Multitenancy con organizaciones de Better Auth.
 - Empresas, sucursales, usuarios de dominio, roles, permisos y menu autorizado.
+- Modulos funcionales para agrupar permisos, menu y futuras capacidades.
 - Guards de identidad que convierten la sesion Better Auth en `AuthenticatedIdentity`.
 - Autorizacion por tipo de usuario, empresa activa, sucursal y permisos.
 - Persistencia con TypeORM, migraciones y seeds.
@@ -103,6 +104,7 @@ El modulo `identity` es responsable de:
 - Usuarios como perfil de dominio.
 - Roles internos.
 - Permisos internos.
+- Modulos funcionales.
 - Menu autorizado para el frontend.
 - Politicas de acceso por empresa y sucursal.
 
@@ -181,7 +183,9 @@ sequenceDiagram
 - Aislamiento por sucursal para usuarios que no son `SYSTEM_OWNER` ni `COMPANY_ADMIN`.
 - Administracion de roles: listar, crear, actualizar, asignar permisos y eliminar.
 - Administracion de permisos: listar, crear, actualizar y eliminar.
-- Administracion de menu: listar items para administracion, crear, actualizar y eliminar.
+- Administracion de modulos funcionales usados por permisos y catalogos.
+- Catalogo agrupado de permisos por modulo funcional para pantallas de administracion.
+- Administracion de menu: listar items para administracion, consultar arbol/opciones, crear, actualizar y eliminar.
 - Consulta de menu autorizado para el usuario autenticado segun tipo de usuario y permisos efectivos.
 - Seeds de empresa base, roles/permisos, menu y usuario `SYSTEM_OWNER`.
 - Migraciones de esquema para identity, Better Auth, menu, sucursales y `BRANCH_ADMIN`.
@@ -205,6 +209,7 @@ erDiagram
   USERS ||--o{ USER_ROLES : has
   ROLES ||--o{ USER_ROLES : assigned_to
   ROLES ||--o{ ROLE_PERMISSIONS : grants
+  APP_MODULES ||--o{ PERMISSIONS : groups
   PERMISSIONS ||--o{ ROLE_PERMISSIONS : included_in
   MENU_ITEMS ||--o{ MENU_ITEMS : parent_of
   MENU_ITEMS ||--o{ MENU_ITEM_PERMISSIONS : requires
@@ -270,6 +275,23 @@ erDiagram
     uuid id PK
     varchar code
     varchar description
+    varchar category
+    uuid module_id FK
+    varchar action
+    varchar label
+    boolean is_system
+    timestamptz deleted_at
+  }
+
+  APP_MODULES {
+    uuid id PK
+    varchar code
+    varchar name
+    varchar description
+    varchar icon
+    int display_order
+    status_enum status
+    boolean is_system
     timestamptz deleted_at
   }
 
@@ -379,6 +401,7 @@ Dominio Identity:
 - `company_branches`
 - `users`
 - `roles`
+- `app_modules`
 - `permissions`
 - `user_roles`
 - `role_permissions`
@@ -396,7 +419,9 @@ Dominio Identity:
 - `uq_users_company_identification_active`: evita identificaciones de usuario duplicadas por empresa.
 - `uq_company_branches_company_code_active`: evita codigos de sucursal duplicados por empresa.
 - `uq_roles_company_code_active`: evita codigos de rol duplicados por empresa.
+- `uq_app_modules_code_active`: evita codigos de modulo duplicados activos.
 - `uq_permissions_code_active`: evita permisos duplicados activos.
+- `ix_permissions_category_module`: optimiza catalogos de permisos por categoria y modulo funcional.
 - `uq_menu_items_code_active`: evita codigos de menu duplicados activos.
 - `uq_menu_item_permissions_menu_permission`: evita duplicar permisos por item de menu.
 - `uq_user_roles_user_role_company`: evita duplicar un rol para el mismo usuario en la empresa.
@@ -490,9 +515,18 @@ Roles:
 - `POST /api/identity/roles/:roleId/permissions`: asigna permisos a rol. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/roles/:roleId`: elimina rol con borrado logico. Requiere `SYSTEM_OWNER`.
 
+Modulos:
+
+- `GET /api/identity/modules`: lista modulos funcionales. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/modules`: crea modulo funcional. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/modules/:moduleId`: actualiza modulo funcional. Requiere `SYSTEM_OWNER`.
+- `DELETE /api/identity/modules/:moduleId`: elimina modulo funcional con borrado logico. Requiere `SYSTEM_OWNER`.
+
 Permisos:
 
 - `GET /api/identity/permissions`: lista permisos. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/permissions/catalog`: obtiene permisos agrupados por categoria y modulo. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/permissions/catalog/ui`: obtiene solo permisos UI agrupados por modulo. Requiere `SYSTEM_OWNER`.
 - `POST /api/identity/permissions`: crea permiso. Requiere `SYSTEM_OWNER`.
 - `PATCH /api/identity/permissions/:permissionId`: actualiza permiso. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/permissions/:permissionId`: elimina permiso con borrado logico. Requiere `SYSTEM_OWNER`.
@@ -501,6 +535,8 @@ Menu:
 
 - `GET /api/identity/menu`: obtiene el menu autorizado para el usuario autenticado.
 - `GET /api/identity/menu/admin`: lista items de menu para administracion. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/menu/admin/tree`: obtiene el arbol de menu para administracion. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/menu/admin/options`: obtiene estados, tipos de usuario, padres disponibles y permisos UI agrupados. Requiere `SYSTEM_OWNER`.
 - `POST /api/identity/menu/admin`: crea item de menu. Requiere `SYSTEM_OWNER`.
 - `PATCH /api/identity/menu/admin/:menuItemId`: actualiza item de menu. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/menu/admin/:menuItemId`: elimina item de menu con borrado logico. Requiere `SYSTEM_OWNER`.

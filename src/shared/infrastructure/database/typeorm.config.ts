@@ -1,6 +1,7 @@
 import { ConfigService } from '@nestjs/config';
 import { TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { PermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/permission.orm-entity';
+import { AppModuleOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/app-module.orm-entity';
 import { RoleOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/role.orm-entity';
 import { RolePermissionOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/role-permission.orm-entity';
 import { CompanyBranchOrmEntity } from '../../../modules/identity/infrastructure/persistence/typeorm/entities/company-branch.orm-entity';
@@ -15,6 +16,7 @@ export const identityOrmEntities = [
   CompanyBranchOrmEntity,
   UserOrmEntity,
   RoleOrmEntity,
+  AppModuleOrmEntity,
   PermissionOrmEntity,
   UserRoleOrmEntity,
   RolePermissionOrmEntity,

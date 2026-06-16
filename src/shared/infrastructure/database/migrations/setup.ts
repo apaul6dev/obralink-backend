@@ -17,6 +17,7 @@ export class Setup1780272000001 implements MigrationInterface {
     await queryRunner.query(`DROP TABLE IF EXISTS role_permissions CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS user_roles CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS permissions CASCADE`);
+    await queryRunner.query(`DROP TABLE IF EXISTS app_modules CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS roles CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS users CASCADE`);
     await queryRunner.query(`DROP TABLE IF EXISTS companies CASCADE`);
@@ -101,10 +102,31 @@ export class Setup1780272000001 implements MigrationInterface {
     `);
 
     await queryRunner.query(`
+      CREATE TABLE IF NOT EXISTS app_modules (
+        id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+        code varchar(80) NOT NULL,
+        name varchar(120) NOT NULL,
+        description varchar(255),
+        icon varchar(80),
+        display_order int NOT NULL DEFAULT 0,
+        status status_enum NOT NULL DEFAULT 'ACTIVE',
+        is_system boolean NOT NULL DEFAULT true,
+        created_at timestamptz NOT NULL DEFAULT now(),
+        updated_at timestamptz NOT NULL DEFAULT now(),
+        deleted_at timestamptz
+      )
+    `);
+
+    await queryRunner.query(`
       CREATE TABLE IF NOT EXISTS permissions (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         code varchar(160) NOT NULL,
         description varchar(255),
+        category varchar(20) NOT NULL DEFAULT 'API',
+        module_id uuid NOT NULL REFERENCES app_modules(id) ON DELETE RESTRICT,
+        action varchar(80) NOT NULL,
+        label varchar(160) NOT NULL,
+        is_system boolean NOT NULL DEFAULT true,
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now(),
         deleted_at timestamptz
@@ -187,7 +209,9 @@ export class Setup1780272000001 implements MigrationInterface {
     await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_users_company_email_active ON users (company_id, email) WHERE deleted_at IS NULL`);
     await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_users_company_identification_active ON users (company_id, identification_number) WHERE deleted_at IS NULL AND identification_number IS NOT NULL`);
     await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_roles_company_code_active ON roles (company_id, code) WHERE deleted_at IS NULL`);
+    await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_app_modules_code_active ON app_modules (code) WHERE deleted_at IS NULL`);
     await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_permissions_code_active ON permissions (code) WHERE deleted_at IS NULL`);
+    await queryRunner.query(`CREATE INDEX IF NOT EXISTS ix_permissions_category_module ON permissions (category, module_id) WHERE deleted_at IS NULL`);
     await queryRunner.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_menu_items_code_active ON menu_items (code) WHERE deleted_at IS NULL`);
     await queryRunner.query(`CREATE INDEX IF NOT EXISTS ix_menu_items_parent_order ON menu_items (parent_id, display_order) WHERE deleted_at IS NULL`);
   }
@@ -197,6 +221,7 @@ export class Setup1780272000001 implements MigrationInterface {
       ['companies', 'Empresas registradas en la plataforma; separan clientes y su configuracion operativa.'],
       ['users', 'Usuarios que pueden autenticarse en el sistema, sean dueños del sistema o asociados a una empresa.'],
       ['roles', 'Roles de autorizacion disponibles globalmente o por empresa.'],
+      ['app_modules', 'Modulos funcionales de la aplicacion usados para agrupar permisos, menu y capacidades.'],
       ['permissions', 'Permisos atomicos usados para autorizar acciones de API y pantallas UI.'],
       ['user_roles', 'Relacion entre usuarios y roles asignados dentro de una empresa.'],
       ['role_permissions', 'Relacion entre roles y permisos concedidos.'],
@@ -246,9 +271,25 @@ export class Setup1780272000001 implements MigrationInterface {
       ['roles', 'created_at', 'Fecha y hora de creacion del rol.'],
       ['roles', 'updated_at', 'Fecha y hora de ultima actualizacion del rol.'],
       ['roles', 'deleted_at', 'Fecha y hora de eliminacion logica del rol.'],
+      ['app_modules', 'id', 'Identificador unico del modulo funcional.'],
+      ['app_modules', 'code', 'Codigo estable del modulo funcional.'],
+      ['app_modules', 'name', 'Nombre visible del modulo funcional.'],
+      ['app_modules', 'description', 'Descripcion funcional del modulo.'],
+      ['app_modules', 'icon', 'Icono Material sugerido para el modulo.'],
+      ['app_modules', 'display_order', 'Orden visual usado en catalogos de administracion.'],
+      ['app_modules', 'status', 'Estado operativo del modulo.'],
+      ['app_modules', 'is_system', 'Indica si el modulo es mantenido por seeds de plataforma.'],
+      ['app_modules', 'created_at', 'Fecha y hora de creacion del modulo.'],
+      ['app_modules', 'updated_at', 'Fecha y hora de ultima actualizacion del modulo.'],
+      ['app_modules', 'deleted_at', 'Fecha y hora de eliminacion logica del modulo.'],
       ['permissions', 'id', 'Identificador unico del permiso.'],
       ['permissions', 'code', 'Codigo estable del permiso para autorizacion.'],
       ['permissions', 'description', 'Descripcion funcional del permiso.'],
+      ['permissions', 'category', 'Categoria del permiso usada por administracion: API o UI.'],
+      ['permissions', 'module_id', 'Modulo funcional usado para agrupar permisos.'],
+      ['permissions', 'action', 'Accion autorizada dentro del modulo funcional.'],
+      ['permissions', 'label', 'Etiqueta legible mostrada en pantallas de administracion.'],
+      ['permissions', 'is_system', 'Indica si el permiso es mantenido por seeds de plataforma.'],
       ['permissions', 'created_at', 'Fecha y hora de creacion del permiso.'],
       ['permissions', 'updated_at', 'Fecha y hora de ultima actualizacion del permiso.'],
       ['permissions', 'deleted_at', 'Fecha y hora de eliminacion logica del permiso.'],

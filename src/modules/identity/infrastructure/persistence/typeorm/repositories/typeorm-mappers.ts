@@ -72,7 +72,22 @@ export const RoleMapper = {
 
 export const PermissionMapper = {
   toDomain(entity: PermissionOrmEntity): Permission {
-    return new Permission(entity.id, entity.code, entity.description, entity.createdAt, entity.updatedAt, entity.deletedAt);
+    return new Permission(
+      entity.id,
+      entity.code,
+      entity.description,
+      entity.category,
+      entity.moduleId,
+      entity.module?.code ?? '',
+      entity.module?.name ?? '',
+      entity.module?.icon ?? null,
+      entity.action,
+      entity.label,
+      entity.isSystem,
+      entity.createdAt,
+      entity.updatedAt,
+      entity.deletedAt,
+    );
   },
   toOrm(domain: Permission): PermissionOrmEntity {
     return Object.assign(new PermissionOrmEntity(), domain);

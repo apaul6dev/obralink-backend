@@ -21,6 +21,8 @@ La administracion completa del menu se hace desde:
 
 ```text
 GET    /api/identity/menu/admin
+GET    /api/identity/menu/admin/tree
+GET    /api/identity/menu/admin/options
 POST   /api/identity/menu/admin
 PATCH  /api/identity/menu/admin/:menuItemId
 DELETE /api/identity/menu/admin/:menuItemId
@@ -35,6 +37,9 @@ Estos endpoints solo los puede usar `SYSTEM_OWNER`.
 - Incluir automaticamente un item padre cuando alguno de sus hijos es visible.
 - Administrar items de menu desde endpoints `admin` protegidos para `SYSTEM_OWNER`.
 - Asociar permisos a items de menu mediante `menu_item_permissions`.
+- Usar solo permisos de categoria `UI` para controlar visibilidad del menu.
+- Mostrar permisos agrupados por modulos registrados en `app_modules` desde `GET /api/identity/menu/admin/options`.
+- Evitar ciclos de jerarquia al cambiar el padre de un item de menu.
 - Crear permisos UI y asignarlos a roles para controlar visibilidad en frontend.
 - Sembrar menu base desde `src/shared/infrastructure/database/seeds/seed-menu.ts`.
 - Sembrar permisos base de UI y API desde `src/shared/infrastructure/database/seeds/seed-roles.ts`.
@@ -54,13 +59,17 @@ flowchart LR
 
   MenuService --> MenuApi["GET /api/identity/menu"]
   MenuAdminService --> MenuAdminApi["/api/identity/menu/admin"]
+  MenuAdminService --> MenuOptionsApi["GET /api/identity/menu/admin/options"]
   RolesService --> RolesApi["/api/identity/roles"]
   PermissionsService --> PermissionsApi["/api/identity/permissions"]
+  PermissionsService --> ModulesApi["/api/identity/modules"]
 
   MenuApi --> AuthenticatedGuard["AuthenticatedIdentityGuard"]
   MenuAdminApi --> OwnerGuard["AuthenticatedIdentityGuard + RolesGuard SYSTEM_OWNER"]
+  MenuOptionsApi --> OwnerGuard
   RolesApi --> IdentityGuards["Identity guards"]
   PermissionsApi --> OwnerGuard
+  ModulesApi --> OwnerGuard
 
   AuthenticatedGuard --> MenuQueryService["MenuQueryService"]
   OwnerGuard --> MenuAdminServiceBackend["MenuAdminService"]
@@ -71,8 +80,10 @@ flowchart LR
   MenuAdminServiceBackend --> DB
   RoleAdminService --> DB
   PermissionAdminService --> DB
+  OwnerGuard --> AppModuleAdminService["AppModuleAdminService"]
+  AppModuleAdminService --> DB
 
-  DB --> Tables["menu_items, menu_item_permissions, permissions, roles, role_permissions, user_roles, users, company_branches"]
+  DB --> Tables["menu_items, menu_item_permissions, app_modules, permissions, roles, role_permissions, user_roles, users, company_branches"]
 ```
 
 ## Diagrama de secuencia: carga del menu autorizado
@@ -139,6 +150,7 @@ erDiagram
   menu_items ||--o{ menu_item_permissions : "menu_item_id"
   permissions ||--o{ menu_item_permissions : "permission_id"
   permissions ||--o{ role_permissions : "permission_id"
+  app_modules ||--o{ permissions : "module_id"
   roles ||--o{ role_permissions : "role_id"
   roles ||--o{ user_roles : "role_id"
   users ||--o{ user_roles : "user_id"
@@ -175,8 +187,24 @@ erDiagram
     uuid id PK
     varchar code UK
     varchar description
+    varchar category
+    uuid module_id FK
+    varchar action
+    varchar label
+    boolean is_system
     timestamptz created_at
     timestamptz updated_at
+    timestamptz deleted_at
+  }
+
+  app_modules {
+    uuid id PK
+    varchar code UK
+    varchar name
+    varchar icon
+    int display_order
+    status_enum status
+    boolean is_system
     timestamptz deleted_at
   }
 
@@ -250,6 +278,8 @@ erDiagram
 - `BRANCH_ADMIN`: tambien puede usarse en `allowedUserTypes` para opciones operativas por sucursal.
 - `status`: `ACTIVE`, `INACTIVE` o `SUSPENDED`.
 - `permissionIds`: permisos requeridos para ver la opcion.
+
+Los permisos de menu deben ser permisos `UI`. El backend rechaza permisos de categoria `API` para evitar mezclar autorizacion de endpoints con visibilidad de navegacion.
 
 ## Crear una opcion desde el frontend
 
