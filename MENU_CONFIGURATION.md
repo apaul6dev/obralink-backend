@@ -28,6 +28,17 @@ DELETE /api/identity/menu/admin/:menuItemId
 
 Estos endpoints solo los puede usar `SYSTEM_OWNER`.
 
+## Procesos implementados
+
+- Consultar el menu autorizado del usuario autenticado desde `GET /api/identity/menu`.
+- Filtrar items de menu por estado, tipo de usuario y permisos efectivos.
+- Incluir automaticamente un item padre cuando alguno de sus hijos es visible.
+- Administrar items de menu desde endpoints `admin` protegidos para `SYSTEM_OWNER`.
+- Asociar permisos a items de menu mediante `menu_item_permissions`.
+- Crear permisos UI y asignarlos a roles para controlar visibilidad en frontend.
+- Sembrar menu base desde `src/shared/infrastructure/database/seeds/seed-menu.ts`.
+- Sembrar permisos base de UI y API desde `src/shared/infrastructure/database/seeds/seed-roles.ts`.
+
 ## Diagrama de arquitectura
 
 ```mermaid
@@ -61,7 +72,7 @@ flowchart LR
   RoleAdminService --> DB
   PermissionAdminService --> DB
 
-  DB --> Tables["menu_items, menu_item_permissions, permissions, roles, role_permissions, user_roles"]
+  DB --> Tables["menu_items, menu_item_permissions, permissions, roles, role_permissions, user_roles, users, company_branches"]
 ```
 
 ## Diagrama de secuencia: carga del menu autorizado
@@ -133,6 +144,8 @@ erDiagram
   users ||--o{ user_roles : "user_id"
   companies ||--o{ roles : "company_id"
   companies ||--o{ users : "company_id"
+  companies ||--o{ company_branches : "company_id"
+  company_branches ||--o{ users : "branch_id"
 
   menu_items {
     uuid id PK
@@ -197,6 +210,7 @@ erDiagram
   users {
     uuid id PK
     uuid company_id FK
+    uuid branch_id FK
     varchar email
     varchar first_name
     varchar last_name
@@ -208,6 +222,15 @@ erDiagram
   companies {
     uuid id PK
     varchar name
+    status_enum status
+    timestamptz deleted_at
+  }
+
+  company_branches {
+    uuid id PK
+    uuid company_id FK
+    varchar name
+    varchar code
     status_enum status
     timestamptz deleted_at
   }
@@ -224,6 +247,7 @@ erDiagram
 - `parentId`: item padre para ubicarlo dentro de una seccion.
 - `displayOrder`: orden visual dentro del nivel.
 - `allowedUserTypes`: tipos de usuario permitidos. Ejemplo: `SYSTEM_OWNER`, `COMPANY_ADMIN`, `COMPANY_USER`.
+- `BRANCH_ADMIN`: tambien puede usarse en `allowedUserTypes` para opciones operativas por sucursal.
 - `status`: `ACTIVE`, `INACTIVE` o `SUSPENDED`.
 - `permissionIds`: permisos requeridos para ver la opcion.
 

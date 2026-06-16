@@ -1,20 +1,21 @@
 # Obralink Backend
 
-Backend de identidad multitenant para Obralink. Está construido con NestJS, TypeScript, PostgreSQL, TypeORM, Better Auth, `@nestjs/cqrs`, `class-validator` y Swagger.
+Backend de identidad multitenant para Obralink. Esta construido con NestJS, TypeScript, PostgreSQL, TypeORM, Better Auth, `@nestjs/cqrs`, `class-validator` y Swagger.
 
 ## Alcance
 
 El backend implementa:
 
-- Autenticación con Better Auth en `/api/auth/*`.
+- Autenticacion con Better Auth en `/api/auth/*`.
 - Sesiones por cookie administradas por Better Auth.
-- Multitenancy con el plugin `organization` de Better Auth.
-- Empresas, usuarios de dominio, roles y permisos.
-- Guards de identidad que convierten la sesión Better Auth en `AuthenticatedIdentity`.
+- Multitenancy con organizaciones de Better Auth.
+- Empresas, sucursales, usuarios de dominio, roles, permisos y menu autorizado.
+- Guards de identidad que convierten la sesion Better Auth en `AuthenticatedIdentity`.
+- Autorizacion por tipo de usuario, empresa activa, sucursal y permisos.
 - Persistencia con TypeORM, migraciones y seeds.
-- Validación global de requests con `ValidationPipe`.
+- Validacion global de requests con `ValidationPipe`.
 - Trazabilidad con `x-tracking-id`, contexto de request y logs correlacionados.
-- Filtro global de excepciones con respuesta JSON estándar.
+- Filtro global de excepciones con respuesta JSON estandar.
 
 ## Arquitectura
 
@@ -25,13 +26,13 @@ src/
   health.controller.ts
   modules/
     better-auth/
-      better-auth.config.ts       Configuracion Better Auth + organization plugin
+      better-auth.config.ts       Configuracion Better Auth
     identity/
       domain/                     Entidades, enums, repositorios y politicas multitenant
-      application/                Commands, queries, DTOs y handlers CQRS
+      application/                Commands, queries, DTOs, handlers CQRS y servicios de admin
       infrastructure/
         persistence/typeorm/      Entidades ORM y repositorios
-        security/                 Guards y provisionamiento Better Auth
+        security/                 Guards y sincronizacion Better Auth
       presentation/               Controllers, decorators y presenters HTTP
   shared/
     infrastructure/
@@ -45,138 +46,159 @@ src/
 Capas:
 
 - `domain`: reglas de negocio y contratos sin depender de HTTP o TypeORM.
-- `application`: casos de uso mediante CQRS.
-- `infrastructure`: persistencia, seguridad técnica e integraciones.
+- `application`: casos de uso mediante CQRS y servicios de administracion.
+- `infrastructure`: persistencia, seguridad tecnica e integraciones.
 - `presentation`: controllers, guards, decorators y presenters.
 - `shared`: infraestructura transversal.
 
+### Diagrama De Componentes
+
+```mermaid
+flowchart TB
+  Client["Frontend / Cliente HTTP"] --> API["NestJS API /api"]
+  Client --> AuthApi["Better Auth /api/auth/*"]
+
+  API --> Tracing["RequestTracingInterceptor"]
+  API --> Docs["Swagger /api/docs"]
+  API --> Health["Health /api/health"]
+  API --> IdentityControllers["Identity Controllers"]
+
+  IdentityControllers --> AuthGuard["AuthenticatedIdentityGuard"]
+  AuthGuard --> BetterAuth["Better Auth Session API"]
+  AuthGuard --> BA[(ba_user / ba_session)]
+  AuthGuard --> IdentityCtx["AuthenticatedIdentity"]
+
+  IdentityControllers --> CompanyGuard["CompanyGuard"]
+  IdentityControllers --> RolesGuard["RolesGuard"]
+  IdentityControllers --> PermissionsGuard["PermissionsGuard"]
+
+  IdentityControllers --> CQRS["CommandBus / QueryBus"]
+  IdentityControllers --> AdminServices["Admin Services"]
+  CQRS --> Handlers["Command / Query Handlers"]
+  Handlers --> Repositories["TypeORM Repositories"]
+  AdminServices --> Repositories
+  AdminServices --> DataSource["TypeORM DataSource"]
+  Repositories --> DB[(PostgreSQL)]
+  DataSource --> DB
+
+  Handlers --> AuthSync["IdentityAuthSyncService"]
+  AuthSync --> BA
+```
+
 ## Autenticacion Y Multitenancy
 
-Better Auth es dueño de:
+Better Auth es responsable de:
 
-- Login.
-- Logout.
-- Sesiones.
-- Hash de contraseñas.
-- Cookies.
+- Login y logout.
+- Sesiones y cookies.
+- Hash de contrasenas.
 - Organizaciones.
-- Membresías.
-- Empresa activa.
+- Membresias.
+- Empresa activa de la sesion.
 
-El módulo `identity` es dueño de:
+El modulo `identity` es responsable de:
 
 - Empresas de negocio.
-- Usuarios como perfil/dominio.
+- Sucursales de empresa.
+- Usuarios como perfil de dominio.
 - Roles internos.
 - Permisos internos.
-- Políticas de acceso por empresa.
+- Menu autorizado para el frontend.
+- Politicas de acceso por empresa y sucursal.
 
-El registro público de Better Auth está deshabilitado. Los usuarios se crean únicamente desde `POST /api/identity/users`, donde el backend registra el perfil de dominio y provisiona internamente `ba_user`, `ba_account` y `ba_member`.
+El registro publico de Better Auth esta deshabilitado. Los usuarios se crean desde endpoints de `identity`, donde el backend registra el perfil de dominio y sincroniza internamente `ba_user`, `ba_account` y `ba_member`.
 
-`SYSTEM_OWNER` administra empresas, pero no pertenece a ninguna empresa y no gestiona usuarios internos. Para iniciar una empresa, `SYSTEM_OWNER` crea su administrador inicial desde `POST /api/identity/companies/:companyId/admin`. Luego ese `COMPANY_ADMIN` administra los usuarios de su propia empresa desde `POST /api/identity/users`.
+`SYSTEM_OWNER` administra la plataforma. Puede crear empresas, sucursales, administradores iniciales, roles, permisos y menu. No pertenece necesariamente a una empresa.
 
-### Diagrama
+`COMPANY_ADMIN` administra usuarios y sucursales de su empresa activa.
 
-```text
-Frontend / Client
-      |
-      | Cookie Better Auth
-      v
-  /api/auth/*
-      |
-      v
-Better Auth
-      |
-      +--> ba_user
-      +--> ba_account
-      +--> ba_session
-      +--> ba_organization
-      +--> ba_member
-      +--> ba_invitation
-      +--> ba_verification
-```
+`BRANCH_ADMIN` administra usuarios de su empresa con alcance operativo de sucursal.
 
-```text
-/api/identity/*
-      |
-      v
-AuthenticatedIdentityGuard
-      |
-      | Lee sesion Better Auth desde cookie
-      v
-AuthenticatedIdentity
-  id        = ba_user.id
-  userType  = ba_user.user_type
-  companyId  = ba_session.active_organization_id
-  permissions = ba_user.permissions
-      |
-      v
-CompanyGuard / RolesGuard / PermissionsGuard
-      |
-      v
-Handlers CQRS + Repositories TypeORM
-```
+`COMPANY_USER` opera dentro de su empresa y necesita permisos explicitos para acciones protegidas.
 
 ### Claves De Integracion
 
 ```text
-users.id       = ba_user.id
-companies.id     = ba_organization.id
-empresa activa = ba_session.active_organization_id
-membresia      = ba_member(user_id, organization_id)
+users.id              = ba_user.id
+companies.id          = ba_organization.id
+users.company_id      = ba_user.company_id
+users.branch_id       = ba_user.branch_id
+empresa activa        = ba_session.active_organization_id
+membresia             = ba_member(user_id, organization_id)
+permisos efectivos    = ba_user.permissions + role_permissions
 ```
 
-Cuando se crea una empresa desde `identity`, también se crea su `ba_organization`.
+Cuando se crea una empresa desde `identity`, tambien se crea su `ba_organization`.
 
-Cuando se crea un usuario desde `identity`, también se crea:
+Cuando se crea un usuario desde `identity`, tambien se crea:
 
 - `ba_user`
 - `ba_account` con credencial Better Auth
 - `ba_member` si el usuario pertenece a una empresa
 
-## Flujo De Login
-
-```text
-POST /api/auth/sign-in/email
-      |
-      v
-Better Auth valida credenciales en ba_user + ba_account
-      |
-      v
-Crea/actualiza sesion en ba_session
-      |
-      v
-Cliente recibe cookie de sesion
-```
-
-Para seleccionar la empresa activa, el cliente debe usar los endpoints de organización de Better Auth. El backend toma la empresa desde:
-
-```text
-ba_session.active_organization_id
-```
-
-El contexto de empresa no se toma desde headers.
-
 ## Flujo De Request
 
-1. `main.ts` registra prefijo `/api`, `ValidationPipe`, Swagger y desactiva el body parser de Nest para Better Auth.
-2. `RequestTracingInterceptor` valida o genera `x-tracking-id`.
-3. Better Auth procesa `/api/auth/*`.
-4. En `/api/identity/*`, `AuthenticatedIdentityGuard` valida la sesión Better Auth.
-5. `CompanyGuard`, `RolesGuard` y `PermissionsGuard` aplican autorización.
-6. Controllers ejecutan commands/queries CQRS.
-7. Handlers aplican reglas de negocio y llaman repositorios.
-8. `AllExceptionsFilter` estandariza errores y conserva el `trackingId`.
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Client as Cliente
+  participant Nest as NestJS API
+  participant Trace as RequestTracingInterceptor
+  participant Auth as AuthenticatedIdentityGuard
+  participant BA as Better Auth
+  participant Guards as Company/Roles/Permissions Guards
+  participant Controller as Controller
+  participant App as Handler o Service
+  participant DB as PostgreSQL
+
+  Client->>Nest: Request /api/identity/*
+  Nest->>Trace: Validar o generar x-tracking-id
+  Nest->>Auth: Validar cookie de sesion
+  Auth->>BA: getSession(headers)
+  BA-->>Auth: user + session
+  Auth->>DB: Leer company_id y branch_id del usuario
+  Auth-->>Nest: AuthenticatedIdentity
+  Nest->>Guards: Validar empresa, tipo de usuario y permisos
+  Guards-->>Controller: Acceso permitido
+  Controller->>App: Command, Query o servicio admin
+  App->>DB: Leer/escribir datos
+  DB-->>App: Resultado
+  App-->>Controller: Respuesta de dominio
+  Controller-->>Client: JSON + x-tracking-id
+```
+
+## Procesos Implementados
+
+- Login y logout por Better Auth usando cookie de sesion.
+- Resolucion de identidad autenticada desde sesion Better Auth hacia `AuthenticatedIdentity`.
+- Creacion, listado, consulta, actualizacion, activacion y suspension de empresas.
+- Provisionamiento automatico de `ba_organization` al crear empresas.
+- Creacion de administrador inicial de empresa por `SYSTEM_OWNER`.
+- Creacion, listado, consulta, actualizacion y asignacion de roles a usuarios.
+- Provisionamiento automatico de `ba_user`, `ba_account` y `ba_member` al crear usuarios.
+- Sincronizacion de permisos efectivos del usuario hacia `ba_user.permissions`.
+- Administracion de sucursales de empresa: listar, crear, actualizar y eliminar con borrado logico.
+- Aislamiento por sucursal para usuarios que no son `SYSTEM_OWNER` ni `COMPANY_ADMIN`.
+- Administracion de roles: listar, crear, actualizar, asignar permisos y eliminar.
+- Administracion de permisos: listar, crear, actualizar y eliminar.
+- Administracion de menu: listar items para administracion, crear, actualizar y eliminar.
+- Consulta de menu autorizado para el usuario autenticado segun tipo de usuario y permisos efectivos.
+- Seeds de empresa base, roles/permisos, menu y usuario `SYSTEM_OWNER`.
+- Migraciones de esquema para identity, Better Auth, menu, sucursales y `BRANCH_ADMIN`.
+- Trazabilidad de requests con `x-tracking-id`.
+- Estandarizacion de errores con `AllExceptionsFilter`.
 
 ## Base De Datos
 
-PostgreSQL usa UUIDs, claves foráneas, índices únicos parciales y borrado lógico (`deleted_at`) en entidades principales del dominio.
+PostgreSQL usa UUIDs, claves foraneas, indices unicos parciales y borrado logico (`deleted_at`) en entidades principales del dominio.
 
 ### Diagrama ER
 
 ```mermaid
 erDiagram
+  COMPANIES ||--o{ COMPANY_BRANCHES : has
   COMPANIES ||--o{ USERS : contains
+  COMPANY_BRANCHES ||--o{ USERS : scopes
   COMPANIES ||--o{ ROLES : defines
   COMPANIES ||--o{ USER_ROLES : scopes
   COMPANIES ||--o{ ROLE_PERMISSIONS : scopes
@@ -184,6 +206,9 @@ erDiagram
   ROLES ||--o{ USER_ROLES : assigned_to
   ROLES ||--o{ ROLE_PERMISSIONS : grants
   PERMISSIONS ||--o{ ROLE_PERMISSIONS : included_in
+  MENU_ITEMS ||--o{ MENU_ITEMS : parent_of
+  MENU_ITEMS ||--o{ MENU_ITEM_PERMISSIONS : requires
+  PERMISSIONS ||--o{ MENU_ITEM_PERMISSIONS : controls
 
   BA_USER ||--o{ BA_ACCOUNT : owns
   BA_USER ||--o{ BA_SESSION : opens
@@ -197,15 +222,30 @@ erDiagram
     varchar name
     varchar legal_name
     varchar tax_id
+    varchar contact_name
+    varchar email
+    varchar phone
+    varchar customer_status
     status_enum status
-    timestamptz created_at
-    timestamptz updated_at
+    timestamptz deleted_at
+  }
+
+  COMPANY_BRANCHES {
+    uuid id PK
+    uuid company_id FK
+    varchar name
+    varchar code
+    varchar address
+    varchar city
+    varchar state
+    status_enum status
     timestamptz deleted_at
   }
 
   USERS {
     uuid id PK
     uuid company_id FK
+    uuid branch_id FK
     varchar email
     varchar first_name
     varchar last_name
@@ -214,8 +254,6 @@ erDiagram
     varchar identification_number
     varchar personal_email
     varchar phone_number
-    timestamptz created_at
-    timestamptz updated_at
     timestamptz deleted_at
   }
 
@@ -225,8 +263,6 @@ erDiagram
     varchar name
     varchar code
     status_enum status
-    timestamptz created_at
-    timestamptz updated_at
     timestamptz deleted_at
   }
 
@@ -234,8 +270,6 @@ erDiagram
     uuid id PK
     varchar code
     varchar description
-    timestamptz created_at
-    timestamptz updated_at
     timestamptz deleted_at
   }
 
@@ -255,12 +289,35 @@ erDiagram
     timestamptz created_at
   }
 
+  MENU_ITEMS {
+    uuid id PK
+    varchar code
+    varchar title_key
+    varchar router_link
+    varchar href
+    varchar icon
+    uuid parent_id FK
+    int display_order
+    user_type_enum_array allowed_user_types
+    status_enum status
+    timestamptz deleted_at
+  }
+
+  MENU_ITEM_PERMISSIONS {
+    uuid id PK
+    uuid menu_item_id FK
+    uuid permission_id FK
+    timestamptz created_at
+  }
+
   BA_USER {
     text id PK
     text name
     text email
     boolean email_verified
     varchar user_type
+    text company_id
+    text branch_id
     text_array permissions
     timestamptz created_at
     timestamptz updated_at
@@ -319,39 +376,45 @@ Better Auth:
 Dominio Identity:
 
 - `companies`
+- `company_branches`
 - `users`
 - `roles`
 - `permissions`
 - `user_roles`
 - `role_permissions`
+- `menu_items`
+- `menu_item_permissions`
 
 ### Enums
 
 - `status_enum`: `ACTIVE`, `INACTIVE`, `SUSPENDED`.
-- `user_type_enum`: `SYSTEM_OWNER`, `COMPANY_ADMIN`, `COMPANY_USER`.
+- `user_type_enum`: `SYSTEM_OWNER`, `COMPANY_ADMIN`, `BRANCH_ADMIN`, `COMPANY_USER`.
 
 ### Indices Relevantes
 
 - `uq_users_company_email_active`: evita emails duplicados por empresa.
 - `uq_users_company_identification_active`: evita identificaciones de usuario duplicadas por empresa.
-- `uq_roles_company_code_active`: evita códigos de rol duplicados por empresa.
+- `uq_company_branches_company_code_active`: evita codigos de sucursal duplicados por empresa.
+- `uq_roles_company_code_active`: evita codigos de rol duplicados por empresa.
 - `uq_permissions_code_active`: evita permisos duplicados activos.
+- `uq_menu_items_code_active`: evita codigos de menu duplicados activos.
+- `uq_menu_item_permissions_menu_permission`: evita duplicar permisos por item de menu.
 - `uq_user_roles_user_role_company`: evita duplicar un rol para el mismo usuario en la empresa.
 - `uq_role_permissions_role_permission_company`: evita duplicar un permiso para el mismo rol en la empresa.
-- `uq_ba_user_email`: email único en Better Auth.
-- `uq_ba_session_token`: token de sesión único.
-- `uq_ba_organization_slug`: slug único de organización.
-- `uq_ba_member_org_user`: membresía única por usuario y organización.
+- `uq_ba_user_email`: email unico en Better Auth.
+- `uq_ba_session_token`: token de sesion unico.
+- `uq_ba_organization_slug`: slug unico de organizacion.
+- `uq_ba_member_org_user`: membresia unica por usuario y organizacion.
 
 ## Reglas Multitenant
 
 - Los datos operativos se delimitan por `companyId`.
-- La empresa efectiva para usuarios de empresa viene de `ba_session.active_organization_id`.
+- La empresa efectiva para usuarios de empresa viene de `ba_session.active_organization_id`; si no existe, se usa `users.company_id`.
 - `SYSTEM_OWNER` puede operar a nivel plataforma y puede enviar `companyId` en endpoints que lo permiten.
-- `COMPANY_ADMIN` y `COMPANY_USER` quedan restringidos a la empresa activa.
-- Los usuarios de empresa no pueden crear dueños del sistema.
-- `COMPANY_ADMIN` tiene acceso administrativo dentro de la empresa.
-- `COMPANY_USER` necesita permisos explícitos en `ba_user.permissions`.
+- `COMPANY_ADMIN` queda restringido a su empresa activa, pero puede operar sobre todas sus sucursales.
+- `BRANCH_ADMIN` queda restringido a su empresa y a su `branchId` cuando aplica aislamiento de sucursal.
+- `COMPANY_USER` queda restringido a su empresa y necesita permisos explicitos.
+- Los usuarios de empresa no pueden crear usuarios `SYSTEM_OWNER`.
 - El contexto de empresa no se toma desde headers.
 
 ## Endpoints
@@ -372,7 +435,7 @@ http://localhost:3000/api/health
 
 ### Auth
 
-Los endpoints de autenticación son los de Better Auth bajo:
+Los endpoints de autenticacion son los de Better Auth bajo:
 
 ```text
 /api/auth/*
@@ -390,9 +453,11 @@ Content-Type: application/json
 }
 ```
 
-La respuesta establece una cookie de sesión. Los endpoints privados de `identity` esperan esa cookie.
+La respuesta establece una cookie de sesion. Los endpoints privados de `identity` esperan esa cookie.
 
 ### Identity
+
+Empresas:
 
 - `POST /api/identity/companies`: crea empresa. Requiere `SYSTEM_OWNER`.
 - `GET /api/identity/companies`: lista empresas. Requiere `SYSTEM_OWNER`.
@@ -401,12 +466,44 @@ La respuesta establece una cookie de sesión. Los endpoints privados de `identit
 - `PATCH /api/identity/companies/:companyId/activate`: activa empresa. Requiere `SYSTEM_OWNER`.
 - `PATCH /api/identity/companies/:companyId/suspend`: suspende empresa. Requiere `SYSTEM_OWNER`.
 - `POST /api/identity/companies/:companyId/admin`: crea el administrador inicial de empresa. Requiere `SYSTEM_OWNER`.
-- `POST /api/identity/users`: crea usuario interno. Requiere `COMPANY_ADMIN`.
-- `GET /api/identity/users?companyId=`: lista usuarios por empresa.
-- `GET /api/identity/users/:userId`: obtiene usuario por id.
-- `PATCH /api/identity/users/:userId`: actualiza usuario.
-- `POST /api/identity/users/:userId/roles`: asigna roles a usuario.
-- `GET /api/identity/roles?companyId=`: lista roles por empresa.
+
+Sucursales:
+
+- `GET /api/identity/companies/:companyId/branches`: lista sucursales de empresa.
+- `POST /api/identity/companies/:companyId/branches`: crea sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
+- `PATCH /api/identity/companies/:companyId/branches/:branchId`: actualiza sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
+- `DELETE /api/identity/companies/:companyId/branches/:branchId`: elimina sucursal con borrado logico. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
+
+Usuarios:
+
+- `POST /api/identity/users`: crea usuario interno. Requiere `COMPANY_ADMIN` o `BRANCH_ADMIN` y permiso `identity.users.create`.
+- `GET /api/identity/users?companyId=`: lista usuarios por empresa. Requiere `SYSTEM_OWNER`, `COMPANY_ADMIN` o `BRANCH_ADMIN` y permiso `identity.users.read`.
+- `GET /api/identity/users/:userId`: obtiene usuario por id. Requiere permiso `identity.users.read`.
+- `PATCH /api/identity/users/:userId`: actualiza usuario. Requiere `SYSTEM_OWNER`, `COMPANY_ADMIN` o `BRANCH_ADMIN` y permiso `identity.users.update`.
+- `POST /api/identity/users/:userId/roles`: asigna roles a usuario. Requiere `COMPANY_ADMIN` o `BRANCH_ADMIN` y permiso `identity.users.roles.assign`.
+
+Roles:
+
+- `GET /api/identity/roles?companyId=`: lista roles por empresa. Requiere permiso `identity.roles.read`.
+- `POST /api/identity/roles`: crea rol. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/roles/:roleId`: actualiza rol. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/roles/:roleId/permissions`: asigna permisos a rol. Requiere `SYSTEM_OWNER`.
+- `DELETE /api/identity/roles/:roleId`: elimina rol con borrado logico. Requiere `SYSTEM_OWNER`.
+
+Permisos:
+
+- `GET /api/identity/permissions`: lista permisos. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/permissions`: crea permiso. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/permissions/:permissionId`: actualiza permiso. Requiere `SYSTEM_OWNER`.
+- `DELETE /api/identity/permissions/:permissionId`: elimina permiso con borrado logico. Requiere `SYSTEM_OWNER`.
+
+Menu:
+
+- `GET /api/identity/menu`: obtiene el menu autorizado para el usuario autenticado.
+- `GET /api/identity/menu/admin`: lista items de menu para administracion. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/menu/admin`: crea item de menu. Requiere `SYSTEM_OWNER`.
+- `PATCH /api/identity/menu/admin/:menuItemId`: actualiza item de menu. Requiere `SYSTEM_OWNER`.
+- `DELETE /api/identity/menu/admin/:menuItemId`: elimina item de menu con borrado logico. Requiere `SYSTEM_OWNER`.
 
 ## Variables De Entorno
 
@@ -472,16 +569,14 @@ npm run db:logs
 npm run migration:show
 npm run migration:run
 npm run migration:revert
+npm run seed:default-company
 npm run seed:roles
+npm run seed:menu
 npm run seed:system-owner
 npm run seed:run
 npm run build
 ```
 
-<<<<<<< HEAD
-El script de lint está definido, pero requiere una configuración `eslint.config.*` compatible con ESLint 9 para poder ejecutarse.
-# obralink-backend
-=======
 ## Trazabilidad Y Logs
 
 Header opcional:
@@ -490,8 +585,8 @@ Header opcional:
 x-tracking-id: 8b7a5a64-7df4-4f6d-a690-a8d0c1e89c7a
 ```
 
-- Si se envía, debe ser UUID.
-- Si no se envía, la API genera un UUID.
+- Si se envia, debe ser UUID.
+- Si no se envia, la API genera un UUID.
 - La API devuelve `x-tracking-id` en response headers.
 - El tracking id se propaga mediante `AsyncLocalStorage`.
 
@@ -518,4 +613,3 @@ npm audit --audit-level=high
 ```
 
 El script de lint existe, pero requiere agregar `eslint.config.*` compatible con ESLint 9 para ejecutarse.
->>>>>>> feature/inicial
