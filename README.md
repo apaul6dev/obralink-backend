@@ -110,9 +110,11 @@ El modulo `identity` es responsable de:
 
 El registro publico de Better Auth esta deshabilitado. Los usuarios se crean desde endpoints de `identity`, donde el backend registra el perfil de dominio y sincroniza internamente `ba_user`, `ba_account` y `ba_member`.
 
+Los codigos estables de identidad viven en `src/modules/identity/domain/constants`. Nuevos permisos, roles base, codigos de modulos y codigos de menu deben declararse ahi antes de usarse en controladores, seeds o servicios.
+
 `SYSTEM_OWNER` administra la plataforma. Puede crear empresas, sucursales, administradores iniciales, roles, permisos y menu. No pertenece necesariamente a una empresa.
 
-`COMPANY_ADMIN` administra usuarios y sucursales de su empresa activa.
+`COMPANY_ADMIN` administra su empresa activa segun los permisos asignados a sus roles. Su alcance cubre todas las sucursales de la empresa, pero las acciones protegidas requieren permisos explicitos.
 
 `BRANCH_ADMIN` administra usuarios de su empresa con alcance operativo de sucursal.
 
@@ -436,7 +438,7 @@ Dominio Identity:
 - Los datos operativos se delimitan por `companyId`.
 - La empresa efectiva para usuarios de empresa viene de `ba_session.active_organization_id`; si no existe, se usa `users.company_id`.
 - `SYSTEM_OWNER` puede operar a nivel plataforma y puede enviar `companyId` en endpoints que lo permiten.
-- `COMPANY_ADMIN` queda restringido a su empresa activa, pero puede operar sobre todas sus sucursales.
+- `COMPANY_ADMIN` queda restringido a su empresa activa y puede operar sobre todas sus sucursales cuando sus roles tienen los permisos requeridos.
 - `BRANCH_ADMIN` queda restringido a su empresa y a su `branchId` cuando aplica aislamiento de sucursal.
 - `COMPANY_USER` queda restringido a su empresa y necesita permisos explicitos.
 - Los usuarios de empresa no pueden crear usuarios `SYSTEM_OWNER`.
@@ -494,10 +496,10 @@ Empresas:
 
 Sucursales:
 
-- `GET /api/identity/companies/:companyId/branches`: lista sucursales de empresa.
-- `POST /api/identity/companies/:companyId/branches`: crea sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
-- `PATCH /api/identity/companies/:companyId/branches/:branchId`: actualiza sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
-- `DELETE /api/identity/companies/:companyId/branches/:branchId`: elimina sucursal con borrado logico. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
+- `GET /api/identity/companies/:companyId/branches`: lista sucursales de empresa. Requiere permiso `identity.branches.read`.
+- `POST /api/identity/companies/:companyId/branches`: crea sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.branches.create`.
+- `PATCH /api/identity/companies/:companyId/branches/:branchId`: actualiza sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.branches.update`.
+- `DELETE /api/identity/companies/:companyId/branches/:branchId`: elimina sucursal con borrado logico. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.branches.delete`.
 
 Usuarios:
 
@@ -510,10 +512,10 @@ Usuarios:
 Roles:
 
 - `GET /api/identity/roles?companyId=`: lista roles por empresa. Requiere permiso `identity.roles.read`.
-- `POST /api/identity/roles`: crea rol. Requiere `SYSTEM_OWNER`.
-- `PATCH /api/identity/roles/:roleId`: actualiza rol. Requiere `SYSTEM_OWNER`.
-- `POST /api/identity/roles/:roleId/permissions`: asigna permisos a rol. Requiere `SYSTEM_OWNER`.
-- `DELETE /api/identity/roles/:roleId`: elimina rol con borrado logico. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/roles`: crea rol. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.create`. `COMPANY_ADMIN` solo crea roles en su empresa.
+- `PATCH /api/identity/roles/:roleId`: actualiza rol. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.update`. `COMPANY_ADMIN` solo actualiza roles de su empresa.
+- `POST /api/identity/roles/:roleId/permissions`: asigna permisos a rol. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.permissions.assign`. `COMPANY_ADMIN` solo modifica roles de su empresa.
+- `DELETE /api/identity/roles/:roleId`: elimina rol con borrado logico. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.delete`. `COMPANY_ADMIN` solo elimina roles de su empresa.
 
 Modulos:
 
@@ -524,9 +526,9 @@ Modulos:
 
 Permisos:
 
-- `GET /api/identity/permissions`: lista permisos. Requiere `SYSTEM_OWNER`.
-- `GET /api/identity/permissions/catalog`: obtiene permisos agrupados por categoria y modulo. Requiere `SYSTEM_OWNER`.
-- `GET /api/identity/permissions/catalog/ui`: obtiene solo permisos UI agrupados por modulo. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/permissions`: lista permisos. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.permissions.read`.
+- `GET /api/identity/permissions/catalog`: obtiene permisos agrupados por categoria y modulo. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.permissions.read`.
+- `GET /api/identity/permissions/catalog/ui`: obtiene solo permisos UI agrupados por modulo. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.permissions.read`.
 - `POST /api/identity/permissions`: crea permiso. Requiere `SYSTEM_OWNER`.
 - `PATCH /api/identity/permissions/:permissionId`: actualiza permiso. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/permissions/:permissionId`: elimina permiso con borrado logico. Requiere `SYSTEM_OWNER`.

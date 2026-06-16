@@ -14,7 +14,7 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
     const request = context.switchToHttp().getRequest<{ user?: AuthenticatedIdentity }>();
-    if (request.user?.userType === UserType.SYSTEM_OWNER || request.user?.userType === UserType.COMPANY_ADMIN) {
+    if (request.user?.userType === UserType.SYSTEM_OWNER) {
       return true;
     }
     const permissions = request.user?.permissions ?? [];

@@ -2,6 +2,7 @@ import { Inject, Logger, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
+import { RoleCode } from '../../../domain/constants';
 import { User } from '../../../domain/entities/user.entity';
 import { Status } from '../../../domain/enums/status.enum';
 import { UserType } from '../../../domain/enums/user-type.enum';
@@ -73,11 +74,11 @@ export class CreateCompanyAdminHandler implements ICommandHandler<CreateCompanyA
         SELECT id
         FROM roles
         WHERE company_id = $1
-          AND code = 'company.admin'
+          AND code = $2
           AND deleted_at IS NULL
         LIMIT 1
       `,
-      [companyId],
+      [companyId, RoleCode.CompanyAdmin],
     );
 
     if (roles.length === 0) {

@@ -65,10 +65,10 @@ El registro publico `/api/auth/sign-up/email` esta deshabilitado. Los usuarios s
 
 ## Identity - Company Branches
 
-- `GET /api/identity/companies/:companyId/branches`: lista sucursales de empresa.
-- `POST /api/identity/companies/:companyId/branches`: crea sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
-- `PATCH /api/identity/companies/:companyId/branches/:branchId`: actualiza sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
-- `DELETE /api/identity/companies/:companyId/branches/:branchId`: elimina sucursal con borrado logico. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN`.
+- `GET /api/identity/companies/:companyId/branches`: lista sucursales de empresa. Requiere permiso `identity.branches.read`.
+- `POST /api/identity/companies/:companyId/branches`: crea sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.branches.create`.
+- `PATCH /api/identity/companies/:companyId/branches/:branchId`: actualiza sucursal. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.branches.update`.
+- `DELETE /api/identity/companies/:companyId/branches/:branchId`: elimina sucursal con borrado logico. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.branches.delete`.
 
 ## Identity - Users
 
@@ -81,10 +81,10 @@ El registro publico `/api/auth/sign-up/email` esta deshabilitado. Los usuarios s
 ## Identity - Roles
 
 - `GET /api/identity/roles?companyId=`: lista roles por empresa. Requiere permiso `identity.roles.read`.
-- `POST /api/identity/roles`: crea rol. Requiere `SYSTEM_OWNER`.
-- `PATCH /api/identity/roles/:roleId`: actualiza rol. Requiere `SYSTEM_OWNER`.
-- `POST /api/identity/roles/:roleId/permissions`: asigna permisos al rol. Requiere `SYSTEM_OWNER`.
-- `DELETE /api/identity/roles/:roleId`: elimina rol con borrado logico. Requiere `SYSTEM_OWNER`.
+- `POST /api/identity/roles`: crea rol. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.create`.
+- `PATCH /api/identity/roles/:roleId`: actualiza rol. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.update`.
+- `POST /api/identity/roles/:roleId/permissions`: asigna permisos al rol. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.permissions.assign`.
+- `DELETE /api/identity/roles/:roleId`: elimina rol con borrado logico. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.roles.delete`.
 
 ## Identity - Modules
 
@@ -95,9 +95,9 @@ El registro publico `/api/auth/sign-up/email` esta deshabilitado. Los usuarios s
 
 ## Identity - Permissions
 
-- `GET /api/identity/permissions`: lista permisos. Requiere `SYSTEM_OWNER`.
-- `GET /api/identity/permissions/catalog`: obtiene permisos agrupados por categoria y modulo. Requiere `SYSTEM_OWNER`.
-- `GET /api/identity/permissions/catalog/ui`: obtiene solo permisos UI agrupados por modulo. Requiere `SYSTEM_OWNER`.
+- `GET /api/identity/permissions`: lista permisos. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.permissions.read`.
+- `GET /api/identity/permissions/catalog`: obtiene permisos agrupados por categoria y modulo. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.permissions.read`.
+- `GET /api/identity/permissions/catalog/ui`: obtiene solo permisos UI agrupados por modulo. Requiere `SYSTEM_OWNER` o `COMPANY_ADMIN` y permiso `identity.permissions.read`.
 - `POST /api/identity/permissions`: crea permiso. Requiere `SYSTEM_OWNER`.
 - `PATCH /api/identity/permissions/:permissionId`: actualiza permiso. Requiere `SYSTEM_OWNER`.
 - `DELETE /api/identity/permissions/:permissionId`: elimina permiso con borrado logico. Requiere `SYSTEM_OWNER`.

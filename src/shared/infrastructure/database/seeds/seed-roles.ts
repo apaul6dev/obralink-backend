@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import { hashPassword } from 'better-auth/crypto';
 import dataSource from '../typeorm-data-source';
+import { AppModuleCode, PermissionAction, PermissionCode, RoleCode } from '../../../../modules/identity/domain/constants';
 import { Status } from '../../../../modules/identity/domain/enums/status.enum';
 import { UserType } from '../../../../modules/identity/domain/enums/user-type.enum';
 import { AppModuleOrmEntity } from '../../../../modules/identity/infrastructure/persistence/typeorm/entities/app-module.orm-entity';
@@ -37,16 +38,16 @@ interface RoleSeed {
 }
 
 const appModules: AppModuleSeed[] = [
-  { code: 'dashboard', name: 'Dashboard', description: 'General landing and summary screens.', icon: 'dashboard', displayOrder: 10 },
-  { code: 'companies', name: 'Companies', description: 'Platform company administration.', icon: 'business', displayOrder: 20 },
-  { code: 'branches', name: 'Branches', description: 'Company branch administration.', icon: 'account_tree', displayOrder: 30 },
-  { code: 'users', name: 'Users', description: 'User and access administration.', icon: 'group', displayOrder: 40 },
-  { code: 'roles', name: 'Roles', description: 'Role administration and permission assignment.', icon: 'verified_user', displayOrder: 50 },
-  { code: 'modules', name: 'Modules', description: 'Application module catalog administration.', icon: 'view_module', displayOrder: 60 },
-  { code: 'permissions', name: 'Permissions', description: 'Permission catalog administration.', icon: 'key', displayOrder: 70 },
-  { code: 'menu', name: 'Menu', description: 'Navigation menu administration.', icon: 'menu_open', displayOrder: 80 },
-  { code: 'profile', name: 'Profile', description: 'User profile screens.', icon: 'person', displayOrder: 80 },
-  { code: 'sessions', name: 'Sessions', description: 'Active session screens.', icon: 'devices', displayOrder: 90 },
+  { code: AppModuleCode.Dashboard, name: 'Dashboard', description: 'General landing and summary screens.', icon: 'dashboard', displayOrder: 10 },
+  { code: AppModuleCode.Companies, name: 'Companies', description: 'Platform company administration.', icon: 'business', displayOrder: 20 },
+  { code: AppModuleCode.Branches, name: 'Branches', description: 'Company branch administration.', icon: 'account_tree', displayOrder: 30 },
+  { code: AppModuleCode.Users, name: 'Users', description: 'User and access administration.', icon: 'group', displayOrder: 40 },
+  { code: AppModuleCode.Roles, name: 'Roles', description: 'Role administration and permission assignment.', icon: 'verified_user', displayOrder: 50 },
+  { code: AppModuleCode.Modules, name: 'Modules', description: 'Application module catalog administration.', icon: 'view_module', displayOrder: 60 },
+  { code: AppModuleCode.Permissions, name: 'Permissions', description: 'Permission catalog administration.', icon: 'key', displayOrder: 70 },
+  { code: AppModuleCode.Menu, name: 'Menu', description: 'Navigation menu administration.', icon: 'menu_open', displayOrder: 80 },
+  { code: AppModuleCode.Profile, name: 'Profile', description: 'User profile screens.', icon: 'person', displayOrder: 80 },
+  { code: AppModuleCode.Sessions, name: 'Sessions', description: 'Active session screens.', icon: 'devices', displayOrder: 90 },
 ];
 
 function apiPermission(moduleCode: string, action: string, label: string, description = `${label}.`): PermissionSeed {
@@ -74,158 +75,171 @@ function uiPermission(moduleCode: string, action: string, label: string, descrip
 }
 
 const apiPermissions: PermissionSeed[] = [
-  apiPermission('users', 'create', 'Create users'),
-  apiPermission('users', 'read', 'Read users'),
-  apiPermission('users', 'update', 'Update users'),
-  apiPermission('users', 'roles.assign', 'Assign user roles'),
-  apiPermission('menu', 'create', 'Create menu items'),
-  apiPermission('menu', 'read', 'Read menu items'),
-  apiPermission('menu', 'update', 'Update menu items'),
-  apiPermission('menu', 'delete', 'Delete menu items'),
-  apiPermission('modules', 'create', 'Create modules'),
-  apiPermission('modules', 'read', 'Read modules'),
-  apiPermission('modules', 'update', 'Update modules'),
-  apiPermission('modules', 'delete', 'Delete modules'),
-  apiPermission('permissions', 'create', 'Create permissions'),
-  apiPermission('permissions', 'read', 'Read permissions'),
-  apiPermission('permissions', 'update', 'Update permissions'),
-  apiPermission('permissions', 'delete', 'Delete permissions'),
-  apiPermission('roles', 'create', 'Create roles'),
-  apiPermission('roles', 'read', 'Read roles'),
-  apiPermission('roles', 'update', 'Update roles'),
-  apiPermission('roles', 'delete', 'Delete roles'),
-  apiPermission('roles', 'permissions.assign', 'Assign role permissions'),
+  apiPermission(AppModuleCode.Branches, PermissionAction.Create, 'Create branches'),
+  apiPermission(AppModuleCode.Branches, PermissionAction.Read, 'Read branches'),
+  apiPermission(AppModuleCode.Branches, PermissionAction.Update, 'Update branches'),
+  apiPermission(AppModuleCode.Branches, PermissionAction.Delete, 'Delete branches'),
+  apiPermission(AppModuleCode.Users, PermissionAction.Create, 'Create users'),
+  apiPermission(AppModuleCode.Users, PermissionAction.Read, 'Read users'),
+  apiPermission(AppModuleCode.Users, PermissionAction.Update, 'Update users'),
+  apiPermission(AppModuleCode.Users, PermissionAction.RolesAssign, 'Assign user roles'),
+  apiPermission(AppModuleCode.Menu, PermissionAction.Create, 'Create menu items'),
+  apiPermission(AppModuleCode.Menu, PermissionAction.Read, 'Read menu items'),
+  apiPermission(AppModuleCode.Menu, PermissionAction.Update, 'Update menu items'),
+  apiPermission(AppModuleCode.Menu, PermissionAction.Delete, 'Delete menu items'),
+  apiPermission(AppModuleCode.Modules, PermissionAction.Create, 'Create modules'),
+  apiPermission(AppModuleCode.Modules, PermissionAction.Read, 'Read modules'),
+  apiPermission(AppModuleCode.Modules, PermissionAction.Update, 'Update modules'),
+  apiPermission(AppModuleCode.Modules, PermissionAction.Delete, 'Delete modules'),
+  apiPermission(AppModuleCode.Permissions, PermissionAction.Create, 'Create permissions'),
+  apiPermission(AppModuleCode.Permissions, PermissionAction.Read, 'Read permissions'),
+  apiPermission(AppModuleCode.Permissions, PermissionAction.Update, 'Update permissions'),
+  apiPermission(AppModuleCode.Permissions, PermissionAction.Delete, 'Delete permissions'),
+  apiPermission(AppModuleCode.Roles, PermissionAction.Create, 'Create roles'),
+  apiPermission(AppModuleCode.Roles, PermissionAction.Read, 'Read roles'),
+  apiPermission(AppModuleCode.Roles, PermissionAction.Update, 'Update roles'),
+  apiPermission(AppModuleCode.Roles, PermissionAction.Delete, 'Delete roles'),
+  apiPermission(AppModuleCode.Roles, PermissionAction.PermissionsAssign, 'Assign role permissions'),
 ];
 
 const uiPermissions: PermissionSeed[] = [
-  uiPermission('dashboard', 'view', 'View dashboard'),
-  uiPermission('companies', 'view', 'View companies'),
-  uiPermission('companies', 'create', 'Show create company action'),
-  uiPermission('companies', 'update', 'Show update company action'),
-  uiPermission('companies', 'activate', 'Show activate company action'),
-  uiPermission('companies', 'suspend', 'Show suspend company action'),
-  uiPermission('branches', 'view', 'View branches'),
-  uiPermission('branches', 'create', 'Show create branch action'),
-  uiPermission('branches', 'update', 'Show update branch action'),
-  uiPermission('branches', 'delete', 'Show delete branch action'),
-  uiPermission('users', 'view', 'View users'),
-  uiPermission('users', 'create', 'Show create user action'),
-  uiPermission('users', 'update', 'Show update user action'),
-  uiPermission('users', 'assign_roles', 'Show assign user roles action'),
-  uiPermission('roles', 'view', 'View roles'),
-  uiPermission('roles', 'create', 'Show create role action'),
-  uiPermission('roles', 'update', 'Show update role action'),
-  uiPermission('roles', 'delete', 'Show delete role action'),
-  uiPermission('menu', 'view', 'View menu management'),
-  uiPermission('menu', 'create', 'Show create menu action'),
-  uiPermission('menu', 'update', 'Show update menu action'),
-  uiPermission('menu', 'delete', 'Show delete menu action'),
-  uiPermission('modules', 'view', 'View modules'),
-  uiPermission('modules', 'create', 'Show create module action'),
-  uiPermission('modules', 'update', 'Show update module action'),
-  uiPermission('modules', 'delete', 'Show delete module action'),
-  uiPermission('permissions', 'view', 'View permissions'),
-  uiPermission('permissions', 'create', 'Show create permission action'),
-  uiPermission('permissions', 'update', 'Show update permission action'),
-  uiPermission('permissions', 'delete', 'Show delete permission action'),
-  uiPermission('profile', 'view', 'View profile'),
-  uiPermission('sessions', 'view', 'View active sessions'),
+  uiPermission(AppModuleCode.Dashboard, PermissionAction.View, 'View dashboard'),
+  uiPermission(AppModuleCode.Companies, PermissionAction.View, 'View companies'),
+  uiPermission(AppModuleCode.Companies, PermissionAction.Create, 'Show create company action'),
+  uiPermission(AppModuleCode.Companies, PermissionAction.Update, 'Show update company action'),
+  uiPermission(AppModuleCode.Companies, PermissionAction.Activate, 'Show activate company action'),
+  uiPermission(AppModuleCode.Companies, PermissionAction.Suspend, 'Show suspend company action'),
+  uiPermission(AppModuleCode.Branches, PermissionAction.View, 'View branches'),
+  uiPermission(AppModuleCode.Branches, PermissionAction.Create, 'Show create branch action'),
+  uiPermission(AppModuleCode.Branches, PermissionAction.Update, 'Show update branch action'),
+  uiPermission(AppModuleCode.Branches, PermissionAction.Delete, 'Show delete branch action'),
+  uiPermission(AppModuleCode.Users, PermissionAction.View, 'View users'),
+  uiPermission(AppModuleCode.Users, PermissionAction.Create, 'Show create user action'),
+  uiPermission(AppModuleCode.Users, PermissionAction.Update, 'Show update user action'),
+  uiPermission(AppModuleCode.Users, PermissionAction.AssignRoles, 'Show assign user roles action'),
+  uiPermission(AppModuleCode.Roles, PermissionAction.View, 'View roles'),
+  uiPermission(AppModuleCode.Roles, PermissionAction.Create, 'Show create role action'),
+  uiPermission(AppModuleCode.Roles, PermissionAction.Update, 'Show update role action'),
+  uiPermission(AppModuleCode.Roles, PermissionAction.Delete, 'Show delete role action'),
+  uiPermission(AppModuleCode.Menu, PermissionAction.View, 'View menu management'),
+  uiPermission(AppModuleCode.Menu, PermissionAction.Create, 'Show create menu action'),
+  uiPermission(AppModuleCode.Menu, PermissionAction.Update, 'Show update menu action'),
+  uiPermission(AppModuleCode.Menu, PermissionAction.Delete, 'Show delete menu action'),
+  uiPermission(AppModuleCode.Modules, PermissionAction.View, 'View modules'),
+  uiPermission(AppModuleCode.Modules, PermissionAction.Create, 'Show create module action'),
+  uiPermission(AppModuleCode.Modules, PermissionAction.Update, 'Show update module action'),
+  uiPermission(AppModuleCode.Modules, PermissionAction.Delete, 'Show delete module action'),
+  uiPermission(AppModuleCode.Permissions, PermissionAction.View, 'View permissions'),
+  uiPermission(AppModuleCode.Permissions, PermissionAction.Create, 'Show create permission action'),
+  uiPermission(AppModuleCode.Permissions, PermissionAction.Update, 'Show update permission action'),
+  uiPermission(AppModuleCode.Permissions, PermissionAction.Delete, 'Show delete permission action'),
+  uiPermission(AppModuleCode.Profile, PermissionAction.View, 'View profile'),
+  uiPermission(AppModuleCode.Sessions, PermissionAction.View, 'View active sessions'),
 ];
 
 const permissions: PermissionSeed[] = [...apiPermissions, ...uiPermissions];
 
 const sharedCompanyUiPermissions = [
-  'ui.dashboard.view',
-  'ui.profile.view',
-  'ui.sessions.view',
+  PermissionCode.UiDashboardView,
+  PermissionCode.UiProfileView,
+  PermissionCode.UiSessionsView,
 ];
 
 const companyRoles: RoleSeed[] = [
   {
-    code: 'company.admin',
+    code: RoleCode.CompanyAdmin,
     name: 'Company Admin',
     permissions: [
       ...apiPermissions.map((permission) => permission.code),
       ...sharedCompanyUiPermissions,
-      'ui.users.view',
-      'ui.users.create',
-      'ui.users.update',
-      'ui.users.assign_roles',
-      'ui.branches.view',
-      'ui.branches.create',
-      'ui.branches.update',
-      'ui.branches.delete',
-      'ui.roles.view',
+      PermissionCode.UiUsersView,
+      PermissionCode.UiUsersCreate,
+      PermissionCode.UiUsersUpdate,
+      PermissionCode.UiUsersAssignRoles,
+      PermissionCode.UiBranchesView,
+      PermissionCode.UiBranchesCreate,
+      PermissionCode.UiBranchesUpdate,
+      PermissionCode.UiBranchesDelete,
+      PermissionCode.UiRolesView,
+      PermissionCode.UiRolesCreate,
+      PermissionCode.UiRolesUpdate,
+      PermissionCode.UiRolesDelete,
     ],
   },
   {
-    code: 'company.user',
+    code: RoleCode.CompanyUser,
     name: 'Company User',
     permissions: [
-      'identity.roles.read',
+      PermissionCode.IdentityBranchesRead,
+      PermissionCode.IdentityRolesRead,
       ...sharedCompanyUiPermissions,
-      'ui.branches.view',
-      'ui.roles.view',
+      PermissionCode.UiBranchesView,
+      PermissionCode.UiRolesView,
     ],
   },
   {
-    code: 'branch.admin',
+    code: RoleCode.BranchAdmin,
     name: 'Branch Admin',
     permissions: [
-      'identity.roles.read',
-      'identity.users.create',
-      'identity.users.read',
-      'identity.users.update',
-      'identity.users.roles.assign',
+      PermissionCode.IdentityBranchesRead,
+      PermissionCode.IdentityRolesRead,
+      PermissionCode.IdentityUsersCreate,
+      PermissionCode.IdentityUsersRead,
+      PermissionCode.IdentityUsersUpdate,
+      PermissionCode.IdentityUsersRolesAssign,
       ...sharedCompanyUiPermissions,
-      'ui.users.view',
-      'ui.users.create',
-      'ui.users.update',
-      'ui.users.assign_roles',
-      'ui.branches.view',
-      'ui.roles.view',
+      PermissionCode.UiUsersView,
+      PermissionCode.UiUsersCreate,
+      PermissionCode.UiUsersUpdate,
+      PermissionCode.UiUsersAssignRoles,
+      PermissionCode.UiBranchesView,
+      PermissionCode.UiRolesView,
     ],
   },
   {
-    code: 'sales.representative',
+    code: RoleCode.SalesRepresentative,
     name: 'Sales Representative',
     permissions: [
-      'identity.roles.read',
+      PermissionCode.IdentityBranchesRead,
+      PermissionCode.IdentityRolesRead,
       ...sharedCompanyUiPermissions,
-      'ui.branches.view',
-      'ui.roles.view',
+      PermissionCode.UiBranchesView,
+      PermissionCode.UiRolesView,
     ],
   },
   {
-    code: 'engineer.technician',
+    code: RoleCode.EngineerTechnician,
     name: 'Engineer Technician',
     permissions: [
-      'identity.roles.read',
+      PermissionCode.IdentityBranchesRead,
+      PermissionCode.IdentityRolesRead,
       ...sharedCompanyUiPermissions,
-      'ui.branches.view',
-      'ui.roles.view',
+      PermissionCode.UiBranchesView,
+      PermissionCode.UiRolesView,
     ],
   },
   {
-    code: 'accounting.finance',
+    code: RoleCode.AccountingFinance,
     name: 'Accounting Finance',
     permissions: [
-      'identity.roles.read',
+      PermissionCode.IdentityBranchesRead,
+      PermissionCode.IdentityRolesRead,
       ...sharedCompanyUiPermissions,
-      'ui.branches.view',
-      'ui.roles.view',
+      PermissionCode.UiBranchesView,
+      PermissionCode.UiRolesView,
     ],
   },
   {
-    code: 'management',
+    code: RoleCode.Management,
     name: 'Management',
     permissions: [
-      'identity.roles.read',
-      'identity.users.read',
+      PermissionCode.IdentityBranchesRead,
+      PermissionCode.IdentityRolesRead,
+      PermissionCode.IdentityUsersRead,
       ...sharedCompanyUiPermissions,
-      'ui.users.view',
-      'ui.branches.view',
-      'ui.roles.view',
+      PermissionCode.UiUsersView,
+      PermissionCode.UiBranchesView,
+      PermissionCode.UiRolesView,
     ],
   },
 ];
@@ -398,7 +412,7 @@ async function seedUsersForCompanyRoles(company: CompanyOrmEntity): Promise<void
 
   for (const role of roles) {
     for (const index of [1, 2]) {
-      const branch = role.code === 'company.admin' ? null : branches[(index - 1) % branches.length] ?? null;
+      const branch = role.code === RoleCode.CompanyAdmin ? null : branches[(index - 1) % branches.length] ?? null;
       const roleSlug = toSlug(role.code);
       const email = `${companySlug}.${roleSlug}.${index}@obralink.local`;
       let user = await userRepository.findOne({
@@ -538,10 +552,10 @@ function toDisplayName(value: string): string {
 }
 
 function toUserTypeForRole(roleCode: string): UserType {
-  if (roleCode === 'company.admin') {
+  if (roleCode === RoleCode.CompanyAdmin) {
     return UserType.COMPANY_ADMIN;
   }
-  if (roleCode === 'branch.admin') {
+  if (roleCode === RoleCode.BranchAdmin) {
     return UserType.BRANCH_ADMIN;
   }
   return UserType.COMPANY_USER;

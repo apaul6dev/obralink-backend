@@ -10,6 +10,7 @@ import { UpdateUserDto } from '../../application/dto/user/update-user.dto';
 import { CompanyQueryDto, UserIdParamDto } from '../../application/dto/common/request.dto';
 import { GetUserByIdQuery } from '../../application/queries/user/get-user-by-id.query';
 import { GetUsersByCompanyQuery } from '../../application/queries/user/get-users-by-company.query';
+import { PermissionCode } from '../../domain/constants';
 import { UserType } from '../../domain/enums/user-type.enum';
 import { AuthenticatedIdentity } from '../../domain/services/company-access-policy.service';
 import { AuthenticatedIdentityGuard } from '../../infrastructure/security/authenticated-identity.guard';
@@ -30,7 +31,7 @@ export class UsersController {
 
   @Post()
   @Roles(UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
-  @Permissions('identity.users.create')
+  @Permissions(PermissionCode.IdentityUsersCreate)
   @ApiOperation({ summary: 'Create user / Crear usuario' })
   async create(@CurrentUser() currentUser: AuthenticatedIdentity, @Body() payload: CreateUserDto) {
     const user = await this.commandBus.execute(new CreateUserCommand(currentUser, payload));
@@ -39,7 +40,7 @@ export class UsersController {
 
   @Get()
   @Roles(UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
-  @Permissions('identity.users.read')
+  @Permissions(PermissionCode.IdentityUsersRead)
   @ApiOperation({ summary: 'List users by company / Listar usuarios por empresa' })
   async findByCompany(@CurrentUser() currentUser: AuthenticatedIdentity, @Query() query: CompanyQueryDto) {
     const users = await this.queryBus.execute(new GetUsersByCompanyQuery(currentUser, query.companyId));
@@ -47,7 +48,7 @@ export class UsersController {
   }
 
   @Get(':userId')
-  @Permissions('identity.users.read')
+  @Permissions(PermissionCode.IdentityUsersRead)
   @ApiOperation({ summary: 'Get user by id / Obtener usuario por id' })
   async findById(@CurrentUser() currentUser: AuthenticatedIdentity, @Param() params: UserIdParamDto) {
     const user = await this.queryBus.execute(new GetUserByIdQuery(currentUser, params.userId));
@@ -56,7 +57,7 @@ export class UsersController {
 
   @Patch(':userId')
   @Roles(UserType.SYSTEM_OWNER, UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
-  @Permissions('identity.users.update')
+  @Permissions(PermissionCode.IdentityUsersUpdate)
   @ApiOperation({ summary: 'Update user / Actualizar usuario' })
   async update(@CurrentUser() currentUser: AuthenticatedIdentity, @Param() params: UserIdParamDto, @Body() payload: UpdateUserDto) {
     const user = await this.commandBus.execute(new UpdateUserCommand(currentUser, params.userId, payload));
@@ -65,7 +66,7 @@ export class UsersController {
 
   @Post(':userId/roles')
   @Roles(UserType.COMPANY_ADMIN, UserType.BRANCH_ADMIN)
-  @Permissions('identity.users.roles.assign')
+  @Permissions(PermissionCode.IdentityUsersRolesAssign)
   @ApiOperation({ summary: 'Assign roles to user / Asignar roles a usuario' })
   async assignRoles(@CurrentUser() currentUser: AuthenticatedIdentity, @Param() params: UserIdParamDto, @Body() payload: AssignRolesToUserDto) {
     await this.commandBus.execute(new AssignRolesToUserCommand(currentUser, params.userId, payload.roleIds));

@@ -1,4 +1,4 @@
-import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { ConflictException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectDataSource } from '@nestjs/typeorm';
 import { randomUUID } from 'crypto';
 import { DataSource } from 'typeorm';
@@ -6,6 +6,7 @@ import { AssignRolePermissionsDto } from '../dto/role/assign-role-permissions.dt
 import { CreateRoleDto } from '../dto/role/create-role.dto';
 import { UpdateRoleDto } from '../dto/role/update-role.dto';
 import { Status } from '../../domain/enums/status.enum';
+import { UserType } from '../../domain/enums/user-type.enum';
 import { AuthenticatedIdentity, CompanyAccessPolicyService } from '../../domain/services/company-access-policy.service';
 
 export interface RoleAdminItem {
@@ -45,7 +46,7 @@ export class RoleAdminService {
     const params: unknown[] = [];
     let companyPredicate = '';
 
-    if (currentUser.userType === 'SYSTEM_OWNER') {
+    if (currentUser.userType === UserType.SYSTEM_OWNER) {
       if (requestedCompanyId) {
         params.push(requestedCompanyId);
         companyPredicate = 'AND role.company_id = $1';
@@ -91,9 +92,9 @@ export class RoleAdminService {
     return rows.map((row) => this.toItem(row));
   }
 
-  async create(payload: CreateRoleDto): Promise<RoleAdminItem> {
+  async create(currentUser: AuthenticatedIdentity, payload: CreateRoleDto): Promise<RoleAdminItem> {
     const roleId = randomUUID();
-    const companyId = payload.companyId ?? null;
+    const companyId = this.resolveWritableCompanyId(currentUser, payload.companyId ?? null);
     await this.assertCodeAvailable(payload.code, companyId);
     await this.assertPermissionsExist(payload.permissionIds ?? []);
 
@@ -111,9 +112,11 @@ export class RoleAdminService {
     return this.findById(roleId);
   }
 
-  async update(roleId: string, payload: UpdateRoleDto): Promise<RoleAdminItem> {
+  async update(currentUser: AuthenticatedIdentity, roleId: string, payload: UpdateRoleDto): Promise<RoleAdminItem> {
     const role = await this.findRoleRow(roleId);
-    const companyId = payload.companyId !== undefined ? payload.companyId ?? null : role.company_id;
+    this.assertCanManageRole(currentUser, role.company_id);
+    const requestedCompanyId = payload.companyId !== undefined ? payload.companyId ?? null : role.company_id;
+    const companyId = this.resolveWritableCompanyId(currentUser, requestedCompanyId);
     if ((payload.code && payload.code.trim() !== role.code) || companyId !== role.company_id) {
       await this.assertCodeAvailable(payload.code?.trim() ?? role.code, companyId, roleId);
     }
@@ -150,8 +153,9 @@ export class RoleAdminService {
     return this.findById(roleId);
   }
 
-  async assignPermissions(roleId: string, payload: AssignRolePermissionsDto): Promise<RoleAdminItem> {
+  async assignPermissions(currentUser: AuthenticatedIdentity, roleId: string, payload: AssignRolePermissionsDto): Promise<RoleAdminItem> {
     const role = await this.findRoleRow(roleId);
+    this.assertCanManageRole(currentUser, role.company_id);
     await this.assertPermissionsExist(payload.permissionIds);
     await this.dataSource.transaction(async (manager) => {
       await this.replacePermissions(roleId, role.company_id, payload.permissionIds, manager);
@@ -160,8 +164,9 @@ export class RoleAdminService {
     return this.findById(roleId);
   }
 
-  async remove(roleId: string): Promise<void> {
-    await this.findRoleRow(roleId);
+  async remove(currentUser: AuthenticatedIdentity, roleId: string): Promise<void> {
+    const role = await this.findRoleRow(roleId);
+    this.assertCanManageRole(currentUser, role.company_id);
     await this.dataSource.query(
       `
         UPDATE roles
@@ -178,6 +183,29 @@ export class RoleAdminService {
   private async findById(roleId: string): Promise<RoleAdminItem> {
     const role = await this.findRoleRow(roleId);
     return this.toItem(role);
+  }
+
+  private resolveWritableCompanyId(currentUser: AuthenticatedIdentity, requestedCompanyId: string | null): string | null {
+    if (currentUser.userType === UserType.SYSTEM_OWNER) {
+      return requestedCompanyId;
+    }
+    if (!currentUser.companyId) {
+      throw new ForbiddenException('Company context is required.');
+    }
+    if (requestedCompanyId && requestedCompanyId !== currentUser.companyId) {
+      throw new ForbiddenException('Cross-company role management is not allowed.');
+    }
+    return currentUser.companyId;
+  }
+
+  private assertCanManageRole(currentUser: AuthenticatedIdentity, roleCompanyId: string | null): void {
+    if (currentUser.userType === UserType.SYSTEM_OWNER) {
+      return;
+    }
+    if (!roleCompanyId) {
+      throw new ForbiddenException('Global roles can only be managed by platform users.');
+    }
+    this.accessPolicy.assertCompanyAccess(currentUser, roleCompanyId);
   }
 
   private async findRoleRow(roleId: string): Promise<RoleRow> {
