@@ -78,6 +78,92 @@ flowchart TD
 
 Nota: en este diagrama `Generar proforma` representa la generacion de una version formal presentable al cliente. El registro inicial de la proforma se crea antes, en estado `DRAFT`, al crear la oportunidad comercial.
 
+## Diagrama De Casos De Uso
+
+```mermaid
+flowchart LR
+    Cliente((Cliente))
+    Asesor((Asesor comercial))
+    Tecnico((Tecnico))
+    Documental((Responsable documental))
+    Compras((Responsable de compras))
+    Contratos((Responsable contractual))
+    Cobranzas((Responsable de cobranzas))
+    Proyectos((Responsable de proyectos))
+    Subcontratista((Subcontratista))
+
+    subgraph Sistema["Sistema Obralink"]
+        UC1[Registrar cliente]
+        UC2[Crear oportunidad comercial]
+        UC3[Clasificar tipo de proyecto]
+        UC4[Programar visita tecnica]
+        UC5[Realizar inspeccion tecnica]
+        UC6[Levantar requerimientos]
+        UC7[Revisar documentacion tecnica]
+        UC8[Generar documentacion tecnica]
+        UC9[Detectar permisos necesarios]
+        UC10[Solicitar cotizaciones a subcontratistas]
+        UC11[Evaluar costos y alcance externo]
+        UC12[Integrar costos de subcontratacion]
+        UC13[Definir alcance interno]
+        UC14[Generar proforma]
+        UC15[Enviar proforma]
+        UC16[Gestionar negociacion comercial]
+        UC17[Aprobar proforma]
+        UC18[Negociar contrato]
+        UC19[Solicitar anticipo]
+        UC20[Registrar anticipo recibido]
+        UC21[Generar contrato]
+        UC22[Crear obra]
+    end
+
+    Cliente --> UC1
+    Cliente --> UC17
+    Cliente --> UC18
+    Cliente --> UC20
+
+    Asesor --> UC1
+    Asesor --> UC2
+    Asesor --> UC3
+    Asesor --> UC13
+    Asesor --> UC14
+    Asesor --> UC15
+    Asesor --> UC16
+
+    Tecnico --> UC4
+    Tecnico --> UC5
+    Tecnico --> UC6
+
+    Documental --> UC7
+    Documental --> UC8
+    Documental --> UC9
+
+    Compras --> UC10
+    Compras --> UC11
+    Compras --> UC12
+    Subcontratista --> UC10
+
+    Contratos --> UC18
+    Contratos --> UC21
+
+    Cobranzas --> UC19
+    Cobranzas --> UC20
+
+    Proyectos --> UC22
+
+    UC2 -. incluye .-> UC14
+    UC4 -. extiende .-> UC5
+    UC5 -. incluye .-> UC6
+    UC7 -. extiende .-> UC8
+    UC10 -. incluye .-> UC11
+    UC11 -. incluye .-> UC12
+    UC14 -. incluye .-> UC15
+    UC16 -. extiende .-> UC14
+    UC17 -. habilita .-> UC18
+    UC19 -. condiciona .-> UC21
+    UC21 -. habilita .-> UC22
+```
+
 ## Plan De Implementacion
 
 ### Objetivo
