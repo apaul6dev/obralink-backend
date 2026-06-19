@@ -5,7 +5,7 @@ flowchart TD
 
     A([Inicio]) --> B[Captar cliente]
     B --> C[Registrar cliente]
-    C --> D[Crear oportunidad comercial]
+    C --> D[Solicitud de contratacion]
     D --> E[Clasificar tipo de proyecto]
 
     E --> F{¿Requiere visita técnica?}
@@ -52,7 +52,7 @@ flowchart TD
     Y -- No --> Z[Negociación comercial]
     Z --> AA{¿Nueva propuesta aceptada?}
 
-    AA -- No --> AB[Cerrar oportunidad perdida]
+    AA -- No --> AB[Cerrar solicitud no concretada]
 
     AA -- Sí --> AC[Actualizar proforma]
     AC --> X
@@ -76,7 +76,7 @@ flowchart TD
     AJ --> AK([Fin])
 ```
 
-Nota: en este diagrama `Generar proforma` representa la generacion de una version formal presentable al cliente. El registro inicial de la proforma se crea antes, en estado `DRAFT`, al crear la oportunidad comercial.
+Nota: en este diagrama `Generar proforma` representa la generacion de una version formal presentable al cliente. El registro inicial de la proforma se crea antes, en estado `DRAFT`, al crear la solicitud de contratacion.
 
 ## Diagrama De Casos De Uso
 
@@ -94,7 +94,7 @@ flowchart LR
 
     subgraph Sistema["Sistema Obralink"]
         UC1[Registrar cliente]
-        UC2[Crear oportunidad comercial]
+        UC2[Solicitud de contratacion]
         UC3[Clasificar tipo de proyecto]
         UC4[Programar visita tecnica]
         UC5[Realizar inspeccion tecnica]
@@ -192,7 +192,7 @@ erDiagram
         boolean is_primary
     }
 
-    OPPORTUNITY {
+    CONTRACTING_REQUEST {
         uuid id PK
         uuid company_id
         uuid client_id FK
@@ -204,7 +204,7 @@ erDiagram
 
     PROJECT_CLASSIFICATION {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         string project_type
         string site_condition
         boolean requires_technical_visit
@@ -212,9 +212,9 @@ erDiagram
         boolean requires_subcontracting
     }
 
-    OPPORTUNITY_REQUIREMENT_SUMMARY {
+    CONTRACTING_REQUEST_REQUIREMENT_SUMMARY {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         string summary
         string constraints
         string scope_notes
@@ -223,7 +223,7 @@ erDiagram
     PROFORMA {
         uuid id PK
         uuid company_id
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid current_version_id
         string status
         datetime created_at
@@ -260,7 +260,7 @@ erDiagram
     COMMERCIAL_NEGOTIATION {
         uuid id PK
         uuid company_id
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid proforma_id FK
         uuid requested_by
         datetime requested_at
@@ -282,7 +282,7 @@ erDiagram
     TECHNICAL_VISIT {
         uuid id PK
         uuid company_id
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         datetime scheduled_at
         uuid assigned_user_id
         string status
@@ -299,7 +299,7 @@ erDiagram
     REQUIREMENT {
         uuid id PK
         uuid technical_inspection_id FK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         string description
         string priority
         boolean affects_proforma
@@ -307,7 +307,7 @@ erDiagram
 
     TECHNICAL_SURVEY {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid performed_by_user_id
         datetime performed_at
         string summary
@@ -316,7 +316,7 @@ erDiagram
 
     TECHNICAL_DOCUMENT {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid client_id FK
         uuid project_id
         string document_type
@@ -334,7 +334,7 @@ erDiagram
 
     DOCUMENT_REQUIREMENT {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         string document_type
         boolean required
         string status
@@ -359,7 +359,7 @@ erDiagram
 
     PERMIT_REQUIREMENT {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid permit_id FK
         string status
         datetime required_at
@@ -399,7 +399,7 @@ erDiagram
 
     SUBCONTRACTOR_QUOTE_REQUEST {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid specialty_id FK
         string scope_summary
         datetime requested_at
@@ -418,7 +418,7 @@ erDiagram
 
     EXTERNAL_COST_EVALUATION {
         uuid id PK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid quote_id FK
         uuid proforma_version_id FK
         decimal selected_amount
@@ -430,7 +430,7 @@ erDiagram
         uuid id PK
         uuid company_id
         uuid client_id FK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid proforma_version_id FK
         uuid current_version_id
         string status
@@ -501,7 +501,7 @@ erDiagram
         uuid id PK
         uuid company_id
         uuid client_id FK
-        uuid opportunity_id FK
+        uuid contracting_request_id FK
         uuid contract_id FK
         string name
         string status
@@ -534,44 +534,44 @@ erDiagram
     }
 
     CLIENT ||--o{ CLIENT_CONTACT : has
-    CLIENT ||--o{ OPPORTUNITY : requests
+    CLIENT ||--o{ CONTRACTING_REQUEST : requests
     CLIENT ||--o{ TECHNICAL_DOCUMENT : owns
     CLIENT ||--o{ CONTRACT : signs
     CLIENT ||--o{ PROJECT : owns
 
-    OPPORTUNITY ||--o| PROJECT_CLASSIFICATION : classified_as
-    OPPORTUNITY ||--o| OPPORTUNITY_REQUIREMENT_SUMMARY : summarizes
-    OPPORTUNITY ||--|| PROFORMA : creates
+    CONTRACTING_REQUEST ||--o| PROJECT_CLASSIFICATION : classified_as
+    CONTRACTING_REQUEST ||--o| CONTRACTING_REQUEST_REQUIREMENT_SUMMARY : summarizes
+    CONTRACTING_REQUEST ||--|| PROFORMA : creates
     PROFORMA ||--o{ PROFORMA_VERSION : versions
     PROFORMA_VERSION ||--o{ PROFORMA_LINE : contains
     PROFORMA ||--o{ COMMERCIAL_NEGOTIATION : negotiated_by
     COMMERCIAL_NEGOTIATION ||--o{ COMMERCIAL_NEGOTIATION_ITEM : contains
 
-    OPPORTUNITY ||--o{ TECHNICAL_VISIT : schedules
+    CONTRACTING_REQUEST ||--o{ TECHNICAL_VISIT : schedules
     TECHNICAL_VISIT ||--o| TECHNICAL_INSPECTION : produces
     TECHNICAL_INSPECTION ||--o{ REQUIREMENT : identifies
-    OPPORTUNITY ||--o{ REQUIREMENT : groups
-    OPPORTUNITY ||--o{ TECHNICAL_SURVEY : surveys
+    CONTRACTING_REQUEST ||--o{ REQUIREMENT : groups
+    CONTRACTING_REQUEST ||--o{ TECHNICAL_SURVEY : surveys
 
-    OPPORTUNITY ||--o{ TECHNICAL_DOCUMENT : documents
+    CONTRACTING_REQUEST ||--o{ TECHNICAL_DOCUMENT : documents
     TECHNICAL_DOCUMENT ||--o{ DOCUMENT_REVIEW : reviewed_by
     TECHNICAL_DOCUMENT ||--o{ DOCUMENT_VERSION : versions
-    OPPORTUNITY ||--o{ DOCUMENT_REQUIREMENT : requires
+    CONTRACTING_REQUEST ||--o{ DOCUMENT_REQUIREMENT : requires
 
-    OPPORTUNITY ||--o{ PERMIT_REQUIREMENT : needs
+    CONTRACTING_REQUEST ||--o{ PERMIT_REQUIREMENT : needs
     PERMIT ||--o{ PERMIT_REQUIREMENT : required_as
     PERMIT_REQUIREMENT ||--o{ PERMIT_CHECKLIST : checklist
     PERMIT_REQUIREMENT ||--o{ PERMIT_STATUS_HISTORY : history
 
-    OPPORTUNITY ||--o{ SUBCONTRACTOR_QUOTE_REQUEST : requests
+    CONTRACTING_REQUEST ||--o{ SUBCONTRACTOR_QUOTE_REQUEST : requests
     SPECIALTY ||--o{ SUBCONTRACTOR_QUOTE_REQUEST : categorizes
     SUBCONTRACTOR_QUOTE_REQUEST ||--o{ SUBCONTRACTOR_QUOTE : receives
     SUBCONTRACTOR ||--o{ SUBCONTRACTOR_QUOTE : sends
     SUBCONTRACTOR_QUOTE ||--o{ EXTERNAL_COST_EVALUATION : evaluated_as
-    OPPORTUNITY ||--o{ EXTERNAL_COST_EVALUATION : evaluates
+    CONTRACTING_REQUEST ||--o{ EXTERNAL_COST_EVALUATION : evaluates
     PROFORMA_VERSION ||--o{ EXTERNAL_COST_EVALUATION : includes
 
-    OPPORTUNITY ||--o| CONTRACT : becomes
+    CONTRACTING_REQUEST ||--o| CONTRACT : becomes
     PROFORMA_VERSION ||--o| CONTRACT : approved_for
     CONTRACT ||--o{ CONTRACT_VERSION : versions
     CONTRACT_VERSION ||--o{ CONTRACT_CLAUSE : contains
@@ -584,7 +584,7 @@ erDiagram
     PAYMENT_REQUEST ||--o{ COLLECTION_FOLLOW_UP : followed_by
 
     CONTRACT ||--o| PROJECT : creates
-    OPPORTUNITY ||--o| PROJECT : converted_to
+    CONTRACTING_REQUEST ||--o| PROJECT : converted_to
     PROJECT ||--o| WORK_SITE : located_at
     PROJECT ||--o| PROJECT_SCOPE : defines
     PROJECT ||--o{ PROJECT_MILESTONE : tracks
@@ -611,22 +611,22 @@ Procesos:
 
 - Captar cliente.
 - Registrar cliente.
-- Crear oportunidad comercial.
+- Crear solicitud de contratacion.
 - Clasificar tipo de proyecto.
 - Definir alcance interno del trabajo.
 - Generar proforma.
 - Actualizar proforma.
 - Aprobar proforma.
 - Gestionar negociacion comercial.
-- Cerrar oportunidad perdida.
+- Cerrar solicitud no concretada.
 
 Entidades sugeridas:
 
 - `Client`
 - `ClientContact`
-- `Opportunity`
+- `ContractingRequest`
 - `ProjectClassification`
-- `OpportunityRequirementSummary`
+- `ContractingRequestRequirementSummary`
 - `Proforma`
 - `ProformaVersion`
 - `ProformaLine`
@@ -636,8 +636,8 @@ Entidades sugeridas:
 Eventos sugeridos:
 
 - `ClientRegistered`
-- `OpportunityCreated`
-- `OpportunityClassified`
+- `ContractingRequestCreated`
+- `ContractingRequestClassified`
 - `ProformaDraftCreated`
 - `ProformaGenerated`
 - `ProformaSent`
@@ -646,7 +646,7 @@ Eventos sugeridos:
 - `CommercialNegotiationAccepted`
 - `ProformaVersionCreated`
 - `ProformaApproved`
-- `OpportunityLost`
+- `ContractingRequestLost`
 
 Gestion de proformas:
 
@@ -655,14 +655,14 @@ La proforma tiene dos momentos distintos:
 - Creacion de proforma borrador.
 - Generacion de proforma presentable al cliente.
 
-Al crear una oportunidad comercial, el sistema debe crear automaticamente una proforma inicial en estado `DRAFT`. Esta proforma funciona como contenedor de alcance, cantidades, costos, impuestos, notas comerciales y condiciones que se van completando durante el proceso.
+Al crear una solicitud de contratacion, el sistema debe crear automaticamente una proforma inicial en estado `DRAFT`. Esta proforma funciona como contenedor de alcance, cantidades, costos, impuestos, notas comerciales y condiciones que se van completando durante el proceso.
 
 En el diagrama, el paso `Generar proforma` no significa crear el registro inicial, sino convertir la proforma trabajada en una version formal y presentable al cliente.
 
 En el flujo:
 
 ```text
-Crear oportunidad comercial
+Crear solicitud de contratacion
   -> Crear proforma DRAFT
   -> Completar analisis tecnico, documental, permisos, subcontratacion y alcance
   -> Definir alcance interno del trabajo
@@ -673,7 +673,7 @@ Crear oportunidad comercial
 Antes de generar una proforma presentable al cliente deben existir, como minimo:
 
 - Cliente registrado.
-- Oportunidad comercial creada.
+- Solicitud de contratacion creada.
 - Tipo de proyecto clasificado.
 - Requerimientos base levantados.
 - Condicion de obra nueva o existente identificada.
@@ -698,7 +698,7 @@ CANCELLED
 
 Reglas:
 
-- `DRAFT`: se crea automaticamente al crear la oportunidad.
+- `DRAFT`: se crea automaticamente al crear la solicitud de contratacion.
 - `IN_REVIEW`: se esta alimentando con visitas, requerimientos, documentos, permisos, costos externos y alcance.
 - `NEEDS_REVISION`: algun cambio tecnico, documental, de permisos, subcontratacion o alcance obliga a revisar.
 - `GENERATED`: el alcance interno esta definido y existe una version formal lista para enviar.
@@ -717,7 +717,7 @@ Versionado sugerido:
 proformas
   id
   company_id
-  opportunity_id
+  contracting_request_id
   current_version_id
   status
   created_at
@@ -780,7 +780,7 @@ Tablas sugeridas:
 commercial_negotiations
   id
   company_id
-  opportunity_id
+  contracting_request_id
   proforma_id
   requested_by
   requested_at
@@ -808,7 +808,7 @@ Reglas de negociacion:
 - Una proforma enviada no se modifica directamente.
 - Si el cliente pide cambios, se registra una negociacion comercial.
 - Si la nueva propuesta es aceptada, se crea una nueva version de proforma y se envia al cliente.
-- Si la nueva propuesta no es aceptada, la oportunidad se cierra como perdida.
+- Si la nueva propuesta no es aceptada, la solicitud de contratacion se cierra como no concretada.
 - `contracts` solo inicia cuando una version de proforma esta `APPROVED`.
 - La aprobacion puede provenir del cliente o ser registrada por un asesor comercial autorizado con evidencia de aceptacion.
 
@@ -846,7 +846,7 @@ Reglas:
 - Si `client_type = PERSON`, `display_name` representa el nombre de la persona.
 - Si `client_type = COMPANY`, `display_name` representa el nombre comercial y `legal_name` la razon social.
 - `identification_number` debe ser unico por `company_id` cuando exista y el registro no este eliminado.
-- Toda oportunidad comercial debe apuntar a `client_id`, sin importar si el cliente es persona o empresa.
+- Toda solicitud de contratacion debe apuntar a `client_id`, sin importar si el cliente es persona o empresa.
 
 Campos sugeridos para `client_contacts`:
 
@@ -905,7 +905,7 @@ La visita tecnica y el levantamiento tecnico pueden modificar la proforma, pero 
 Regla:
 
 - Si una visita tecnica, inspeccion, requerimiento o levantamiento tecnico modifica alcance, cantidades, tiempos, restricciones, costos estimados o condiciones del sitio, `technical` debe emitir un evento.
-- `commercial` debe consumir ese evento y decidir si la oportunidad vuelve a revision de alcance o costeo.
+- `commercial` debe consumir ese evento y decidir si la solicitud de contratacion vuelve a revision de alcance o costeo.
 - Si ya existe una proforma vigente, debe marcarse como `NEEDS_REVISION` o crearse una nueva version.
 - La version anterior de la proforma debe mantenerse como historial.
 - Una proforma `APPROVED` no debe modificarse directamente; cualquier cambio posterior debe generar una nueva version o una solicitud formal de cambio.
@@ -935,7 +935,7 @@ Procesos:
 - Determinar si se requiere documentacion tecnica.
 - Revisar documentacion tecnica existente.
 - Generar documentacion tecnica.
-- Asociar documentos a oportunidad, cliente u obra.
+- Asociar documentos a solicitud de contratacion, cliente u obra.
 
 Entidades sugeridas:
 
@@ -1053,7 +1053,7 @@ Responsable de la obra despues de la aprobacion comercial y contractual.
 Procesos:
 
 - Crear obra.
-- Vincular obra con cliente, oportunidad, contrato y alcance aprobado.
+- Vincular obra con cliente, solicitud de contratacion, contrato y alcance aprobado.
 
 Entidades sugeridas:
 
@@ -1111,9 +1111,9 @@ src/modules/<module-name>
 ```text
 commercial
   ClientRegistered
-  OpportunityCreated
+  ContractingRequestCreated
   ProformaDraftCreated
-  OpportunityClassified
+  ContractingRequestClassified
         |
         v
 technical
@@ -1168,14 +1168,14 @@ projects
 #### Fase 1: Base Comercial
 
 - Crear modulo `commercial`.
-- Crear entidades `Client`, `ClientContact`, `Opportunity`, `ProjectClassification`, `Proforma`, `ProformaVersion`, `ProformaLine`, `CommercialNegotiation` y `CommercialNegotiationItem`.
+- Crear entidades `Client`, `ClientContact`, `ContractingRequest`, `ProjectClassification`, `Proforma`, `ProformaVersion`, `ProformaLine`, `CommercialNegotiation` y `CommercialNegotiationItem`.
 - Crear CRUD inicial de clientes.
-- Crear CRUD inicial de oportunidades.
-- Crear proforma `DRAFT` automaticamente al crear oportunidad.
-- Crear endpoints para clasificar oportunidad.
+- Crear CRUD inicial de solicitudes de contratacion.
+- Crear proforma `DRAFT` automaticamente al crear solicitud de contratacion.
+- Crear endpoints para clasificar solicitud de contratacion.
 - Crear endpoints para versionar, generar, enviar y aprobar proforma.
 - Crear endpoints para registrar negociacion comercial y generar nueva version cuando el cliente solicita cambios.
-- Crear permisos y menu para clientes, oportunidades y proformas, incluyendo `commercial.proformas.approve`.
+- Crear permisos y menu para clientes, solicitudes de contratacion y proformas, incluyendo `commercial.proformas.approve`.
 
 #### Fase 2: Visitas Y Requerimientos Tecnicos
 
@@ -1183,7 +1183,7 @@ projects
 - Crear entidades `TechnicalVisit`, `TechnicalInspection` y `Requirement`.
 - Crear endpoints para programar visita tecnica.
 - Crear endpoints para completar inspeccion y levantar requerimientos.
-- Conectar oportunidad con visita tecnica mediante `opportunityId`.
+- Conectar solicitud de contratacion con visita tecnica mediante `contractingRequestId`.
 
 #### Fase 3: Documentacion Tecnica
 
@@ -1229,15 +1229,15 @@ projects
 - Crear modulo `projects`.
 - Crear entidades `Project`, `WorkSite` y `ProjectScope`.
 - Crear endpoint para crear obra desde contrato generado y aceptado o firmado, segun la regla contractual configurada.
-- Mantener referencias a `clientId`, `opportunityId`, `contractId` y `companyId`.
+- Mantener referencias a `clientId`, `contractingRequestId`, `contractId` y `companyId`.
 
 ### Primer Corte Recomendado
 
 El primer incremento funcional debe cubrir:
 
 - Registro de cliente.
-- Creacion de oportunidad.
-- Clasificacion de oportunidad.
+- Creacion de solicitud de contratacion.
+- Clasificacion de solicitud de contratacion.
 - Decision de visita tecnica.
 - Creacion automatica de proforma `DRAFT`.
 - Generacion basica de una version formal de proforma.
