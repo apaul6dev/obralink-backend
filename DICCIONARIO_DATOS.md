@@ -69,16 +69,6 @@ Representa la solicitud de contratacion que inicia el flujo comercial-tecnico-op
 | `requester_email` | Correo capturado del solicitante. |
 | `requester_phone` | Telefono capturado del solicitante. |
 | `requester_identification` | Identificacion capturada si aplica. |
-| `site_address_line1` | Direccion del sitio de trabajo, linea 1. |
-| `site_address_line2` | Direccion del sitio de trabajo, linea 2. |
-| `site_city` | Ciudad del sitio de trabajo. |
-| `site_state` | Estado del sitio de trabajo. |
-| `site_county` | Condado del sitio de trabajo. |
-| `site_postal_code` | ZIP o ZIP+4 del sitio. |
-| `site_country` | Pais del sitio. |
-| `site_reference` | Referencia adicional para ubicar el sitio. |
-| `site_latitude` | Latitud opcional. |
-| `site_longitude` | Longitud opcional. |
 | `public_tracking_code` | Codigo publico para seguimiento de solicitudes sin usuario. |
 | `email_verification_token` | Token de verificacion de correo en flujo publico. |
 | `captcha_verified` | Indica si paso validacion captcha. |
@@ -86,6 +76,31 @@ Representa la solicitud de contratacion que inicia el flujo comercial-tecnico-op
 | `user_agent` | User agent de origen. |
 | `description` | Descripcion inicial de la necesidad. |
 | `created_at` | Fecha de creacion. |
+
+#### CONTRACTING_REQUEST_SITE
+
+Representa una ubicacion donde debe ejecutarse una solicitud de contratacion. Una solicitud puede tener una o varias ubicaciones.
+
+| Campo | Descripcion |
+| --- | --- |
+| `id` | Identificador de la ubicacion. |
+| `contracting_request_id` | Solicitud a la que pertenece. |
+| `address_line1` | Direccion del sitio de trabajo, linea 1. |
+| `address_line2` | Direccion del sitio de trabajo, linea 2. |
+| `city` | Ciudad del sitio de trabajo. |
+| `state` | Estado del sitio de trabajo. |
+| `county` | Condado del sitio de trabajo. |
+| `postal_code` | ZIP o ZIP+4 del sitio. |
+| `country` | Pais del sitio. |
+| `reference` | Referencia adicional para ubicar el sitio. |
+| `latitude` | Latitud opcional. |
+| `longitude` | Longitud opcional. |
+| `site_condition` | Condicion del sitio. |
+| `requires_technical_visit` | Indica si esta ubicacion requiere visita tecnica. |
+| `requires_permit_review` | Indica si esta ubicacion requiere revision de permisos. |
+| `is_primary` | Indica si es la ubicacion principal de la solicitud. |
+| `notes` | Notas especificas de la ubicacion. |
+| `status` | Estado de la ubicacion: `PENDING_REVIEW`, `VISIT_REQUIRED`, `VISITED`, `READY_FOR_ESTIMATE`, `EXCLUDED`. |
 
 #### PROJECT_CLASSIFICATION
 
@@ -203,6 +218,7 @@ Visita tecnica programada para una solicitud.
 | `id` | Identificador de la visita. |
 | `company_id` | Empresa tenant. |
 | `contracting_request_id` | Solicitud asociada. |
+| `contracting_request_site_id` | Ubicacion especifica asociada cuando la visita aplica a un sitio. |
 | `scheduled_at` | Fecha programada. |
 | `assigned_user_id` | Tecnico asignado. |
 | `status` | Estado de la visita. |
@@ -240,6 +256,7 @@ Levantamiento tecnico adicional del sitio o proyecto.
 | --- | --- |
 | `id` | Identificador del levantamiento. |
 | `contracting_request_id` | Solicitud asociada. |
+| `contracting_request_site_id` | Ubicacion especifica asociada cuando el levantamiento aplica a un sitio. |
 | `performed_by_user_id` | Usuario que lo realizo. |
 | `performed_at` | Fecha de levantamiento. |
 | `summary` | Resumen tecnico. |
@@ -375,6 +392,7 @@ Permiso requerido para una solicitud especifica.
 | --- | --- |
 | `id` | Identificador del permiso requerido. |
 | `contracting_request_id` | Solicitud asociada. |
+| `contracting_request_site_id` | Ubicacion especifica asociada cuando el permiso depende del sitio. |
 | `permit_id` | Permiso de catalogo. |
 | `status` | Estado del permiso requerido. |
 | `required_at` | Fecha en que se detecto como requerido. |
@@ -602,6 +620,7 @@ Ubicacion fisica de la obra.
 | --- | --- |
 | `id` | Identificador del sitio. |
 | `project_id` | Obra asociada. |
+| `contracting_request_site_id` | Ubicacion de solicitud que origino este sitio de obra. |
 | `address_line1` | Direccion, linea 1. |
 | `address_line2` | Direccion, linea 2. |
 | `city` | Ciudad. |

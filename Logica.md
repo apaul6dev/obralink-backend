@@ -20,9 +20,10 @@ flowchart TD
     J -- No --> K[Cerrar solicitud no concretada]
     J -- Sí --> L[Vincular o registrar cliente]
     L --> M[Asignar asesor comercial]
-    M --> N[Crear proforma DRAFT]
+    M --> NA[Registrar ubicaciones de trabajo]
+    NA --> N[Crear proforma DRAFT]
 
-    E --> N
+    E --> NA
     N --> O[Clasificar tipo de proyecto]
 
     O --> P{¿Requiere visita técnica?}
@@ -137,6 +138,7 @@ flowchart LR
         UC24[Vincular o registrar cliente]
         UC25[Asignar asesor comercial]
         UC26[Adjuntar documentacion tecnica]
+        UC27[Registrar ubicaciones de trabajo]
     end
 
     Cliente --> UC1
@@ -145,8 +147,10 @@ flowchart LR
     Cliente --> UC18
     Cliente --> UC20
     Cliente --> UC26
+    Cliente --> UC27
     Visitante --> UC2
     Visitante --> UC26
+    Visitante --> UC27
 
     Asesor --> UC1
     Asesor --> UC2
@@ -154,6 +158,7 @@ flowchart LR
     Asesor --> UC23
     Asesor --> UC24
     Asesor --> UC25
+    Asesor --> UC27
     Asesor --> UC13
     Asesor --> UC14
     Asesor --> UC15
@@ -185,7 +190,9 @@ flowchart LR
     UC2 -. extiende .-> UC23
     UC23 -. incluye .-> UC24
     UC23 -. incluye .-> UC25
-    UC25 -. habilita .-> UC14
+    UC2 -. incluye .-> UC27
+    UC27 -. habilita .-> UC14
+    UC25 -. habilita .-> UC27
     UC26 -. habilita .-> UC7
     UC4 -. extiende .-> UC5
     UC5 -. incluye .-> UC6
@@ -247,16 +254,6 @@ erDiagram
         string requester_email
         string requester_phone
         string requester_identification
-        string site_address_line1
-        string site_address_line2
-        string site_city
-        string site_state
-        string site_county
-        string site_postal_code
-        string site_country
-        string site_reference
-        decimal site_latitude
-        decimal site_longitude
         string public_tracking_code
         string email_verification_token
         boolean captcha_verified
@@ -264,6 +261,27 @@ erDiagram
         string user_agent
         string description
         datetime created_at
+    }
+
+    CONTRACTING_REQUEST_SITE {
+        uuid id PK
+        uuid contracting_request_id FK
+        string address_line1
+        string address_line2
+        string city
+        string state
+        string county
+        string postal_code
+        string country
+        string reference
+        decimal latitude
+        decimal longitude
+        string site_condition
+        boolean requires_technical_visit
+        boolean requires_permit_review
+        boolean is_primary
+        string notes
+        string status
     }
 
     PROJECT_CLASSIFICATION {
@@ -347,6 +365,7 @@ erDiagram
         uuid id PK
         uuid company_id
         uuid contracting_request_id FK
+        uuid contracting_request_site_id FK
         datetime scheduled_at
         uuid assigned_user_id
         string status
@@ -372,6 +391,7 @@ erDiagram
     TECHNICAL_SURVEY {
         uuid id PK
         uuid contracting_request_id FK
+        uuid contracting_request_site_id FK
         uuid performed_by_user_id
         datetime performed_at
         string summary
@@ -469,6 +489,7 @@ erDiagram
     PERMIT_REQUIREMENT {
         uuid id PK
         uuid contracting_request_id FK
+        uuid contracting_request_site_id FK
         uuid permit_id FK
         string status
         datetime required_at
@@ -620,6 +641,7 @@ erDiagram
     WORK_SITE {
         uuid id PK
         uuid project_id FK
+        uuid contracting_request_site_id FK
         string address_line1
         string address_line2
         string city
@@ -658,6 +680,7 @@ erDiagram
     CLIENT ||--o{ PROJECT : owns
 
     CONTRACTING_REQUEST ||--o| PROJECT_CLASSIFICATION : classified_as
+    CONTRACTING_REQUEST ||--o{ CONTRACTING_REQUEST_SITE : has
     CONTRACTING_REQUEST ||--o| CONTRACTING_REQUEST_REQUIREMENT_SUMMARY : summarizes
     CONTRACTING_REQUEST ||--o| PROFORMA : creates
     PROFORMA ||--o{ PROFORMA_VERSION : versions
@@ -666,10 +689,12 @@ erDiagram
     COMMERCIAL_NEGOTIATION ||--o{ COMMERCIAL_NEGOTIATION_ITEM : contains
 
     CONTRACTING_REQUEST ||--o{ TECHNICAL_VISIT : schedules
+    CONTRACTING_REQUEST_SITE ||--o{ TECHNICAL_VISIT : schedules
     TECHNICAL_VISIT ||--o| TECHNICAL_INSPECTION : produces
     TECHNICAL_INSPECTION ||--o{ REQUIREMENT : identifies
     CONTRACTING_REQUEST ||--o{ REQUIREMENT : groups
     CONTRACTING_REQUEST ||--o{ TECHNICAL_SURVEY : surveys
+    CONTRACTING_REQUEST_SITE ||--o{ TECHNICAL_SURVEY : surveys
 
     CONTRACTING_REQUEST ||--o{ TECHNICAL_DOCUMENT : documents
     TECHNICAL_DOCUMENT ||--o{ DOCUMENT_REVIEW : reviewed_by
@@ -679,6 +704,7 @@ erDiagram
     CONTRACTING_REQUEST ||--o{ DOCUMENT_REQUIREMENT : requires
 
     CONTRACTING_REQUEST ||--o{ PERMIT_REQUIREMENT : needs
+    CONTRACTING_REQUEST_SITE ||--o{ PERMIT_REQUIREMENT : needs
     PERMIT ||--o{ PERMIT_REQUIREMENT : required_as
     PERMIT_REQUIREMENT ||--o{ PERMIT_CHECKLIST : checklist
     PERMIT_REQUIREMENT ||--o{ PERMIT_STATUS_HISTORY : history
@@ -706,12 +732,14 @@ erDiagram
 
     CONTRACT ||--o| PROJECT : creates
     CONTRACTING_REQUEST ||--o| PROJECT : converted_to
-    PROJECT ||--o| WORK_SITE : located_at
+    PROJECT ||--o{ WORK_SITE : located_at
+    CONTRACTING_REQUEST_SITE ||--o| WORK_SITE : becomes
     PROJECT ||--o| PROJECT_SCOPE : defines
     PROJECT ||--o{ PROJECT_MILESTONE : tracks
     PROFORMA_VERSION ||--o| PROJECT_SCOPE : basis_for
 
     CONTRACTING_REQUEST ||--o{ ATTACHMENT : attaches
+    CONTRACTING_REQUEST_SITE ||--o{ ATTACHMENT : attaches
     TECHNICAL_VISIT ||--o{ ATTACHMENT : attaches
     TECHNICAL_INSPECTION ||--o{ ATTACHMENT : attaches
     PROFORMA ||--o{ ATTACHMENT : attaches
@@ -745,6 +773,7 @@ Procesos:
 - Captar cliente.
 - Registrar cliente.
 - Crear solicitud de contratacion.
+- Registrar una o varias ubicaciones de trabajo de la solicitud.
 - Recibir solicitud de contratacion desde portal de cliente.
 - Recibir solicitud de contratacion desde pagina web publica.
 - Asignar asesor comercial responsable.
@@ -761,6 +790,7 @@ Entidades sugeridas:
 - `Client`
 - `ClientContact`
 - `ContractingRequest`
+- `ContractingRequestSite`
 - `ProjectClassification`
 - `ContractingRequestRequirementSummary`
 - `Proforma`
@@ -812,22 +842,38 @@ requester_name
 requester_email
 requester_phone
 requester_identification
-site_address_line1
-site_address_line2
-site_city
-site_state
-site_county
-site_postal_code
-site_country
-site_reference
-site_latitude nullable
-site_longitude nullable
 public_tracking_code
 email_verification_token
 captcha_verified
 source_ip
 user_agent
 description
+created_at
+updated_at
+deleted_at
+```
+
+Campos sugeridos para `contracting_request_sites`:
+
+```text
+id
+contracting_request_id
+address_line1
+address_line2
+city
+state
+county
+postal_code
+country
+reference
+latitude nullable
+longitude nullable
+site_condition
+requires_technical_visit
+requires_permit_review
+is_primary
+notes
+status                    PENDING_REVIEW | VISIT_REQUIRED | VISITED | READY_FOR_ESTIMATE | EXCLUDED
 created_at
 updated_at
 deleted_at
@@ -841,10 +887,14 @@ Reglas:
 - Una solicitud `PUBLIC_WEB` debe guardar los datos capturados del solicitante, `public_tracking_code`, verificacion de correo cuando aplique, `captcha_verified`, `source_ip` y `user_agent`.
 - Si el solicitante ya existe como cliente, el sistema puede vincular la solicitud a `client_id`.
 - Si el solicitante no existe como cliente, la solicitud queda pendiente de revision para que un asesor comercial cree o vincule el cliente.
-- La solicitud debe poder registrar la ubicacion inicial del sitio de trabajo mediante direccion, ciudad, estado, condado, ZIP code, pais y referencia.
-- `site_latitude` y `site_longitude` son opcionales; pueden venir del formulario publico, del portal del cliente o de una geocodificacion posterior.
-- La ubicacion pertenece a la solicitud, no al cliente, porque un mismo cliente puede tener trabajos en diferentes sitios.
-- Al crear la obra, la ubicacion de la solicitud debe copiarse o consolidarse en `projects.work_sites`.
+- La solicitud debe poder registrar una o varias ubicaciones de trabajo mediante `contracting_request_sites`.
+- Una solicitud debe tener al menos una ubicacion antes de pasar a analisis comercial.
+- Solo una ubicacion debe marcarse como `is_primary = true`.
+- `latitude` y `longitude` son opcionales; pueden venir del formulario publico, del portal del cliente o de una geocodificacion posterior.
+- Las ubicaciones pertenecen a la solicitud, no al cliente, porque un mismo cliente puede tener trabajos en diferentes sitios.
+- Cada ubicacion puede tener requisitos propios de visita tecnica, permisos, condiciones del sitio, notas y estado.
+- Si una ubicacion queda fuera del alcance, no se elimina; se marca como `EXCLUDED`.
+- Al crear la obra, una o varias ubicaciones aceptadas de la solicitud deben copiarse o consolidarse en `projects.work_sites`.
 - Las solicitudes creadas por cliente autenticado o por pagina publica deben iniciar en `SUBMITTED` o `PENDING_REVIEW`, no deben pasar directamente a una proforma formal sin revision interna.
 - `assigned_advisor_id` identifica al asesor responsable de revisar, clasificar y continuar el flujo comercial.
 - La auditoria de una solicitud sin usuario autenticado debe basarse en canal de origen, datos capturados, IP, user agent, codigo publico de seguimiento y evidencia de verificacion.
@@ -871,7 +921,8 @@ En el flujo:
 ```text
 Crear o aceptar solicitud de contratacion
   -> Crear proforma DRAFT
-  -> Completar analisis tecnico, documental, permisos, subcontratacion y alcance
+  -> Registrar una o varias ubicaciones de trabajo
+  -> Completar analisis tecnico, documental, permisos, subcontratacion y alcance por solicitud y por ubicacion cuando aplique
   -> Definir alcance interno del trabajo
   -> Generar version formal de proforma
   -> Enviar al cliente
@@ -881,6 +932,7 @@ Antes de generar una proforma presentable al cliente deben existir, como minimo:
 
 - Cliente registrado.
 - Solicitud de contratacion creada.
+- Al menos una ubicacion de trabajo registrada.
 - Tipo de proyecto clasificado.
 - Requerimientos base levantados.
 - Condicion de obra nueva o existente identificada.
@@ -888,6 +940,8 @@ Antes de generar una proforma presentable al cliente deben existir, como minimo:
 - Permisos necesarios detectados.
 - Costos de subcontratacion integrados cuando aplique.
 - Alcance interno del trabajo definido.
+
+Si la solicitud tiene varias ubicaciones, la proforma puede agrupar costos por ubicacion, por actividad o de forma global. La regla de agrupacion debe quedar registrada en la version de proforma.
 
 Estados sugeridos para `proformas`:
 
@@ -1097,6 +1151,7 @@ Procesos:
 - Levantar requerimientos.
 - Identificar si la obra es nueva o existente.
 - Realizar levantamiento tecnico.
+- Asociar visitas, inspecciones y levantamientos a una ubicacion especifica cuando la solicitud tenga multiples ubicaciones.
 
 Entidades sugeridas:
 
@@ -1121,7 +1176,7 @@ La visita tecnica y el levantamiento tecnico pueden modificar la proforma, pero 
 
 Regla:
 
-- Si una visita tecnica, inspeccion, requerimiento o levantamiento tecnico modifica alcance, cantidades, tiempos, restricciones, costos estimados o condiciones del sitio, `technical` debe emitir un evento.
+- Si una visita tecnica, inspeccion, requerimiento o levantamiento tecnico modifica alcance, cantidades, tiempos, restricciones, costos estimados o condiciones de una ubicacion, `technical` debe emitir un evento.
 - `commercial` debe consumir ese evento y decidir si la solicitud de contratacion vuelve a revision de alcance o costeo.
 - Si ya existe una proforma vigente, debe marcarse como `NEEDS_REVISION` o crearse una nueva version.
 - La version anterior de la proforma debe mantenerse como historial.
@@ -1170,7 +1225,7 @@ Campos sugeridos para `attachments`:
 id
 company_id
 owner_module              commercial | technical | documents | contracts | billing | projects
-owner_type                CONTRACTING_REQUEST | CLIENT | PROFORMA | CONTRACT | TECHNICAL_VISIT | TECHNICAL_INSPECTION | PROJECT | PAYMENT_RECORD | TECHNICAL_DOCUMENT
+owner_type                CONTRACTING_REQUEST | CONTRACTING_REQUEST_SITE | CLIENT | PROFORMA | CONTRACT | TECHNICAL_VISIT | TECHNICAL_INSPECTION | PROJECT | PAYMENT_RECORD | TECHNICAL_DOCUMENT
 owner_id
 file_category             PHOTO | VIDEO | AUDIO | PDF | CONTRACT | INVOICE | RECEIPT | TECHNICAL_DOCUMENT | OTHER
 storage_provider          AWS_S3 | AZURE_BLOB
@@ -1292,6 +1347,7 @@ Procesos:
 - Detectar permisos necesarios.
 - Registrar permisos requeridos.
 - Controlar estado de permisos.
+- Detectar permisos por ubicacion cuando la solicitud incluya varios sitios en ciudades, condados o estados diferentes.
 
 Entidades sugeridas:
 
@@ -1393,7 +1449,7 @@ Procesos:
 
 - Crear obra.
 - Vincular obra con cliente, solicitud de contratacion, contrato y alcance aprobado.
-- Crear o consolidar ubicacion de obra desde la ubicacion registrada en la solicitud de contratacion.
+- Crear uno o varios sitios de obra desde las ubicaciones registradas en la solicitud de contratacion.
 
 Entidades sugeridas:
 
@@ -1515,12 +1571,13 @@ projects
 #### Fase 1: Base Comercial
 
 - Crear modulo `commercial`.
-- Crear entidades `Client`, `ClientContact`, `ContractingRequest`, `ProjectClassification`, `Proforma`, `ProformaVersion`, `ProformaLine`, `CommercialNegotiation` y `CommercialNegotiationItem`.
+- Crear entidades `Client`, `ClientContact`, `ContractingRequest`, `ContractingRequestSite`, `ProjectClassification`, `Proforma`, `ProformaVersion`, `ProformaLine`, `CommercialNegotiation` y `CommercialNegotiationItem`.
 - Crear CRUD inicial de clientes.
 - Crear CRUD inicial de solicitudes de contratacion.
 - Crear endpoint interno para solicitudes creadas por asesor comercial.
 - Crear endpoint autenticado para solicitudes creadas desde portal de cliente.
 - Crear endpoint publico para solicitudes creadas desde pagina web publica.
+- Crear endpoints para agregar, editar, excluir y marcar ubicacion principal en `ContractingRequestSite`.
 - Crear endpoints para revisar, vincular cliente y asignar asesor comercial a solicitudes `PUBLIC_WEB`.
 - Crear proforma `DRAFT` automaticamente al crear una solicitud interna o al aceptar una solicitud recibida desde cliente autenticado o pagina publica.
 - Crear endpoints para clasificar solicitud de contratacion.
@@ -1535,6 +1592,7 @@ projects
 - Crear endpoints para programar visita tecnica.
 - Crear endpoints para completar inspeccion y levantar requerimientos.
 - Conectar solicitud de contratacion con visita tecnica mediante `contractingRequestId`.
+- Permitir asociar visita tecnica a `contractingRequestSiteId` cuando la visita aplique a una ubicacion especifica.
 
 #### Fase 3: Adjuntos Y Almacenamiento Externo
 
@@ -1569,6 +1627,7 @@ projects
 - Crear modulo `permits`.
 - Crear entidades `Permit`, `PermitRequirement` y `PermitChecklist`.
 - Crear endpoints para detectar y administrar permisos requeridos.
+- Permitir asociar permisos requeridos a `contractingRequestSiteId` cuando dependan de ciudad, condado o estado.
 
 #### Fase 6: Subcontratacion
 
@@ -1602,7 +1661,8 @@ projects
 - Crear modulo `projects`.
 - Crear entidades `Project`, `WorkSite` y `ProjectScope`.
 - Crear endpoint para crear obra desde contrato generado y aceptado o firmado, segun la regla contractual configurada.
-- Copiar o consolidar direccion, ciudad, estado, condado, ZIP code, pais, referencia y coordenadas desde la solicitud de contratacion hacia `WorkSite`.
+- Crear uno o varios `WorkSite` desde las ubicaciones aprobadas de `ContractingRequestSite`.
+- Copiar o consolidar direccion, ciudad, estado, condado, ZIP code, pais, referencia y coordenadas desde cada ubicacion de la solicitud hacia `WorkSite`.
 - Mantener referencias a `clientId`, `contractingRequestId`, `contractId` y `companyId`.
 
 ### Primer Corte Recomendado
@@ -1611,6 +1671,7 @@ El primer incremento funcional debe cubrir:
 
 - Registro de cliente.
 - Creacion de solicitud de contratacion.
+- Registro de al menos una ubicacion de trabajo.
 - Clasificacion de solicitud de contratacion.
 - Decision de visita tecnica.
 - Creacion automatica de proforma `DRAFT` para solicitudes internas o aceptadas despues de revision.
