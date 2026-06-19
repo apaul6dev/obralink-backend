@@ -47,7 +47,7 @@ flowchart TD
 
     W --> X[Generar proforma]
 
-    X --> Y{¿Cliente aprueba proforma?}
+    X --> Y{¿Proforma aprobada?}
 
     Y -- No --> Z[Negociación comercial]
     Z --> AA{¿Nueva propuesta aceptada?}
@@ -165,6 +165,434 @@ flowchart LR
     UC21 -. habilita .-> UC22
 ```
 
+## Diagrama ER
+
+```mermaid
+erDiagram
+    CLIENT {
+        uuid id PK
+        uuid company_id
+        string client_type
+        string display_name
+        string legal_name
+        string identification_type
+        string identification_number
+        string email
+        string phone
+        string status
+    }
+
+    CLIENT_CONTACT {
+        uuid id PK
+        uuid client_id FK
+        string name
+        string role
+        string email
+        string phone
+        boolean is_primary
+    }
+
+    OPPORTUNITY {
+        uuid id PK
+        uuid company_id
+        uuid client_id FK
+        string status
+        string source
+        string description
+        datetime created_at
+    }
+
+    PROJECT_CLASSIFICATION {
+        uuid id PK
+        uuid opportunity_id FK
+        string project_type
+        string site_condition
+        boolean requires_technical_visit
+        boolean requires_technical_documentation
+        boolean requires_subcontracting
+    }
+
+    OPPORTUNITY_REQUIREMENT_SUMMARY {
+        uuid id PK
+        uuid opportunity_id FK
+        string summary
+        string constraints
+        string scope_notes
+    }
+
+    PROFORMA {
+        uuid id PK
+        uuid company_id
+        uuid opportunity_id FK
+        uuid current_version_id
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+
+    PROFORMA_VERSION {
+        uuid id PK
+        uuid proforma_id FK
+        int version_number
+        string status
+        string scope_summary
+        decimal internal_cost
+        decimal external_cost
+        decimal subtotal
+        decimal taxes
+        decimal total
+        datetime sent_at
+        datetime approved_at
+        uuid approved_by_user_id
+        string approval_source
+        string approval_evidence
+    }
+
+    PROFORMA_LINE {
+        uuid id PK
+        uuid proforma_version_id FK
+        string description
+        decimal quantity
+        decimal unit_price
+        decimal total
+    }
+
+    COMMERCIAL_NEGOTIATION {
+        uuid id PK
+        uuid company_id
+        uuid opportunity_id FK
+        uuid proforma_id FK
+        uuid requested_by
+        datetime requested_at
+        string reason
+        string client_comments
+        string status
+    }
+
+    COMMERCIAL_NEGOTIATION_ITEM {
+        uuid id PK
+        uuid negotiation_id FK
+        string change_type
+        string description
+        decimal impact_amount
+        int impact_days
+        boolean accepted
+    }
+
+    TECHNICAL_VISIT {
+        uuid id PK
+        uuid company_id
+        uuid opportunity_id FK
+        datetime scheduled_at
+        uuid assigned_user_id
+        string status
+    }
+
+    TECHNICAL_INSPECTION {
+        uuid id PK
+        uuid technical_visit_id FK
+        datetime inspected_at
+        string observations
+        string status
+    }
+
+    REQUIREMENT {
+        uuid id PK
+        uuid technical_inspection_id FK
+        uuid opportunity_id FK
+        string description
+        string priority
+        boolean affects_proforma
+    }
+
+    TECHNICAL_SURVEY {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid performed_by_user_id
+        datetime performed_at
+        string summary
+        boolean affects_proforma
+    }
+
+    TECHNICAL_DOCUMENT {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid client_id FK
+        uuid project_id
+        string document_type
+        string status
+    }
+
+    DOCUMENT_REVIEW {
+        uuid id PK
+        uuid technical_document_id FK
+        uuid reviewed_by_user_id
+        datetime reviewed_at
+        string result
+        string observations
+    }
+
+    DOCUMENT_REQUIREMENT {
+        uuid id PK
+        uuid opportunity_id FK
+        string document_type
+        boolean required
+        string status
+    }
+
+    DOCUMENT_VERSION {
+        uuid id PK
+        uuid technical_document_id FK
+        int version_number
+        string file_url
+        string status
+        datetime created_at
+    }
+
+    PERMIT {
+        uuid id PK
+        uuid company_id
+        string name
+        string authority
+        string description
+    }
+
+    PERMIT_REQUIREMENT {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid permit_id FK
+        string status
+        datetime required_at
+    }
+
+    PERMIT_CHECKLIST {
+        uuid id PK
+        uuid permit_requirement_id FK
+        string item
+        boolean completed
+    }
+
+    PERMIT_STATUS_HISTORY {
+        uuid id PK
+        uuid permit_requirement_id FK
+        string status
+        uuid changed_by_user_id
+        datetime changed_at
+    }
+
+    SUBCONTRACTOR {
+        uuid id PK
+        uuid company_id
+        string display_name
+        string identification_number
+        string email
+        string phone
+        string status
+    }
+
+    SPECIALTY {
+        uuid id PK
+        uuid company_id
+        string name
+        string description
+    }
+
+    SUBCONTRACTOR_QUOTE_REQUEST {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid specialty_id FK
+        string scope_summary
+        datetime requested_at
+        string status
+    }
+
+    SUBCONTRACTOR_QUOTE {
+        uuid id PK
+        uuid quote_request_id FK
+        uuid subcontractor_id FK
+        decimal amount
+        int estimated_days
+        string scope
+        string status
+    }
+
+    EXTERNAL_COST_EVALUATION {
+        uuid id PK
+        uuid opportunity_id FK
+        uuid quote_id FK
+        uuid proforma_version_id FK
+        decimal selected_amount
+        int selected_days
+        string evaluation_notes
+    }
+
+    CONTRACT {
+        uuid id PK
+        uuid company_id
+        uuid client_id FK
+        uuid opportunity_id FK
+        uuid proforma_version_id FK
+        uuid current_version_id
+        string status
+        datetime generated_at
+    }
+
+    CONTRACT_VERSION {
+        uuid id PK
+        uuid contract_id FK
+        int version_number
+        string file_url
+        string status
+        datetime created_at
+    }
+
+    CONTRACT_NEGOTIATION {
+        uuid id PK
+        uuid contract_id FK
+        string reason
+        string status
+        datetime started_at
+    }
+
+    CONTRACT_CLAUSE {
+        uuid id PK
+        uuid contract_version_id FK
+        string clause_type
+        string content
+    }
+
+    ADVANCE_PAYMENT {
+        uuid id PK
+        uuid contract_id FK
+        decimal amount
+        string status
+        datetime requested_at
+        datetime received_at
+    }
+
+    PAYMENT_REQUEST {
+        uuid id PK
+        uuid contract_id FK
+        uuid advance_payment_id FK
+        decimal amount
+        datetime due_date
+        string status
+    }
+
+    PAYMENT_RECORD {
+        uuid id PK
+        uuid payment_request_id FK
+        decimal amount
+        datetime paid_at
+        string payment_method
+        string reference
+    }
+
+    COLLECTION_FOLLOW_UP {
+        uuid id PK
+        uuid payment_request_id FK
+        uuid responsible_user_id
+        datetime follow_up_at
+        string notes
+        string status
+    }
+
+    PROJECT {
+        uuid id PK
+        uuid company_id
+        uuid client_id FK
+        uuid opportunity_id FK
+        uuid contract_id FK
+        string name
+        string status
+        datetime created_at
+    }
+
+    WORK_SITE {
+        uuid id PK
+        uuid project_id FK
+        string address
+        string city
+        string site_condition
+    }
+
+    PROJECT_SCOPE {
+        uuid id PK
+        uuid project_id FK
+        uuid proforma_version_id FK
+        string scope_summary
+        string exclusions
+    }
+
+    PROJECT_MILESTONE {
+        uuid id PK
+        uuid project_id FK
+        string name
+        datetime planned_at
+        datetime completed_at
+        string status
+    }
+
+    CLIENT ||--o{ CLIENT_CONTACT : has
+    CLIENT ||--o{ OPPORTUNITY : requests
+    CLIENT ||--o{ TECHNICAL_DOCUMENT : owns
+    CLIENT ||--o{ CONTRACT : signs
+    CLIENT ||--o{ PROJECT : owns
+
+    OPPORTUNITY ||--o| PROJECT_CLASSIFICATION : classified_as
+    OPPORTUNITY ||--o| OPPORTUNITY_REQUIREMENT_SUMMARY : summarizes
+    OPPORTUNITY ||--|| PROFORMA : creates
+    PROFORMA ||--o{ PROFORMA_VERSION : versions
+    PROFORMA_VERSION ||--o{ PROFORMA_LINE : contains
+    PROFORMA ||--o{ COMMERCIAL_NEGOTIATION : negotiated_by
+    COMMERCIAL_NEGOTIATION ||--o{ COMMERCIAL_NEGOTIATION_ITEM : contains
+
+    OPPORTUNITY ||--o{ TECHNICAL_VISIT : schedules
+    TECHNICAL_VISIT ||--o| TECHNICAL_INSPECTION : produces
+    TECHNICAL_INSPECTION ||--o{ REQUIREMENT : identifies
+    OPPORTUNITY ||--o{ REQUIREMENT : groups
+    OPPORTUNITY ||--o{ TECHNICAL_SURVEY : surveys
+
+    OPPORTUNITY ||--o{ TECHNICAL_DOCUMENT : documents
+    TECHNICAL_DOCUMENT ||--o{ DOCUMENT_REVIEW : reviewed_by
+    TECHNICAL_DOCUMENT ||--o{ DOCUMENT_VERSION : versions
+    OPPORTUNITY ||--o{ DOCUMENT_REQUIREMENT : requires
+
+    OPPORTUNITY ||--o{ PERMIT_REQUIREMENT : needs
+    PERMIT ||--o{ PERMIT_REQUIREMENT : required_as
+    PERMIT_REQUIREMENT ||--o{ PERMIT_CHECKLIST : checklist
+    PERMIT_REQUIREMENT ||--o{ PERMIT_STATUS_HISTORY : history
+
+    OPPORTUNITY ||--o{ SUBCONTRACTOR_QUOTE_REQUEST : requests
+    SPECIALTY ||--o{ SUBCONTRACTOR_QUOTE_REQUEST : categorizes
+    SUBCONTRACTOR_QUOTE_REQUEST ||--o{ SUBCONTRACTOR_QUOTE : receives
+    SUBCONTRACTOR ||--o{ SUBCONTRACTOR_QUOTE : sends
+    SUBCONTRACTOR_QUOTE ||--o{ EXTERNAL_COST_EVALUATION : evaluated_as
+    OPPORTUNITY ||--o{ EXTERNAL_COST_EVALUATION : evaluates
+    PROFORMA_VERSION ||--o{ EXTERNAL_COST_EVALUATION : includes
+
+    OPPORTUNITY ||--o| CONTRACT : becomes
+    PROFORMA_VERSION ||--o| CONTRACT : approved_for
+    CONTRACT ||--o{ CONTRACT_VERSION : versions
+    CONTRACT_VERSION ||--o{ CONTRACT_CLAUSE : contains
+    CONTRACT ||--o{ CONTRACT_NEGOTIATION : negotiated_by
+
+    CONTRACT ||--o{ ADVANCE_PAYMENT : may_require
+    CONTRACT ||--o{ PAYMENT_REQUEST : requests
+    ADVANCE_PAYMENT ||--o{ PAYMENT_REQUEST : generates
+    PAYMENT_REQUEST ||--o{ PAYMENT_RECORD : paid_by
+    PAYMENT_REQUEST ||--o{ COLLECTION_FOLLOW_UP : followed_by
+
+    CONTRACT ||--o| PROJECT : creates
+    OPPORTUNITY ||--o| PROJECT : converted_to
+    PROJECT ||--o| WORK_SITE : located_at
+    PROJECT ||--o| PROJECT_SCOPE : defines
+    PROJECT ||--o{ PROJECT_MILESTONE : tracks
+    PROFORMA_VERSION ||--o| PROJECT_SCOPE : basis_for
+```
+
+Nota: `company_id` y los campos terminados en `_user_id` son referencias externas al modulo `identity`. El ER mantiene esas referencias como IDs para conservar limites entre modulos.
+
 ## Plan De Implementacion
 
 ### Objetivo
@@ -188,6 +616,7 @@ Procesos:
 - Definir alcance interno del trabajo.
 - Generar proforma.
 - Actualizar proforma.
+- Aprobar proforma.
 - Gestionar negociacion comercial.
 - Cerrar oportunidad perdida.
 
@@ -275,10 +704,12 @@ Reglas:
 - `GENERATED`: el alcance interno esta definido y existe una version formal lista para enviar.
 - `SENT`: la version formal fue enviada al cliente.
 - `UNDER_NEGOTIATION`: el cliente no aprobo y solicito modificaciones.
-- `APPROVED`: el cliente aprobo la version vigente.
+- `APPROVED`: la version vigente fue aprobada por el cliente o registrada como aprobada por un asesor comercial autorizado.
 - Antes de `SENT`, se puede editar la version activa.
 - Despues de `SENT`, cualquier cambio debe crear una nueva version.
 - Despues de `APPROVED`, la proforma no se modifica directamente; cualquier cambio debe generar una nueva version o una solicitud formal de cambio.
+- Para aprobar una proforma desde el sistema, el asesor comercial debe tener el permiso `commercial.proformas.approve`.
+- Cuando el asesor comercial registra la aprobacion, debe guardar la evidencia de aceptacion del cliente cuando aplique: comentario, correo, documento, fecha, adjunto o referencia externa.
 
 Versionado sugerido:
 
@@ -306,9 +737,23 @@ proforma_versions
   total
   sent_at
   approved_at
+  approved_by_user_id
+  approval_source          CLIENT | COMMERCIAL_ADVISOR
+  approval_evidence
   rejected_at
   created_at
   updated_at
+```
+
+Datos minimos del evento `ProformaApproved`:
+
+```text
+proforma_id
+proforma_version_id
+approved_at
+approved_by_user_id
+approval_source          CLIENT | COMMERCIAL_ADVISOR
+approval_evidence
 ```
 
 Negociacion comercial cuando el cliente no aprueba:
@@ -326,7 +771,7 @@ Proforma SENT
   -> Evaluar impacto en alcance, costos y tiempos
   -> Crear nueva version de proforma
   -> Enviar nueva version al cliente
-  -> Cliente aprueba o rechaza
+  -> Proforma aprobada o rechazada
 ```
 
 Tablas sugeridas:
@@ -365,6 +810,7 @@ Reglas de negociacion:
 - Si la nueva propuesta es aceptada, se crea una nueva version de proforma y se envia al cliente.
 - Si la nueva propuesta no es aceptada, la oportunidad se cierra como perdida.
 - `contracts` solo inicia cuando una version de proforma esta `APPROVED`.
+- La aprobacion puede provenir del cliente o ser registrada por un asesor comercial autorizado con evidencia de aceptacion.
 
 Especificacion de clientes:
 
@@ -727,9 +1173,9 @@ projects
 - Crear CRUD inicial de oportunidades.
 - Crear proforma `DRAFT` automaticamente al crear oportunidad.
 - Crear endpoints para clasificar oportunidad.
-- Crear endpoints para versionar, generar y enviar proforma.
+- Crear endpoints para versionar, generar, enviar y aprobar proforma.
 - Crear endpoints para registrar negociacion comercial y generar nueva version cuando el cliente solicita cambios.
-- Crear permisos y menu para clientes, oportunidades y proformas.
+- Crear permisos y menu para clientes, oportunidades y proformas, incluyendo `commercial.proformas.approve`.
 
 #### Fase 2: Visitas Y Requerimientos Tecnicos
 
