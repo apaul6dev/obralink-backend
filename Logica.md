@@ -129,6 +129,7 @@ flowchart LR
     Asesor --> UC14
     Asesor --> UC15
     Asesor --> UC16
+    Asesor --> UC17
 
     Tecnico --> UC4
     Tecnico --> UC5
