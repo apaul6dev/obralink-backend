@@ -421,20 +421,41 @@ erDiagram
         uuid owner_id
         string file_category
         string storage_provider
+        string storage_region
         string bucket_name
         string container_name
         string object_key
+        string object_version_id
         string original_filename
         string content_type
         int file_size_bytes
         string checksum_sha256
         string visibility
+        string status
+        string scan_status
+        string encryption_method
+        string kms_key_id
+        datetime uploaded_at
+        datetime available_at
+        datetime expires_at
         uuid uploaded_by_user_id
         uuid uploaded_by_client_contact_id
         boolean uploaded_from_public_form
         string metadata_json
         datetime created_at
         datetime deleted_at
+    }
+
+    ATTACHMENT_ACCESS_LOG {
+        uuid id PK
+        uuid attachment_id FK
+        uuid company_id
+        uuid accessed_by_user_id
+        uuid accessed_by_client_contact_id
+        string action
+        string source_ip
+        string user_agent
+        datetime accessed_at
     }
 
     PERMIT {
@@ -654,6 +675,7 @@ erDiagram
     TECHNICAL_DOCUMENT ||--o{ DOCUMENT_REVIEW : reviewed_by
     TECHNICAL_DOCUMENT ||--o{ DOCUMENT_VERSION : versions
     ATTACHMENT ||--o{ DOCUMENT_VERSION : stores
+    ATTACHMENT ||--o{ ATTACHMENT_ACCESS_LOG : audited_by
     CONTRACTING_REQUEST ||--o{ DOCUMENT_REQUIREMENT : requires
 
     CONTRACTING_REQUEST ||--o{ PERMIT_REQUIREMENT : needs
@@ -1130,10 +1152,13 @@ Procesos:
 - Validar tipo de archivo, tamano maximo, checksum y visibilidad.
 - Registrar adjuntos enviados desde formularios publicos.
 - Asociar fotos, videos, audios, PDFs, contratos, facturas, recibos y documentos tecnicos a entidades del sistema.
+- Procesar archivos cargados mediante cola/eventos para antivirus, metadata, thumbnails o transcodificacion.
+- Auditar accesos, descargas, eliminaciones y confirmaciones de upload.
 
 Entidades sugeridas:
 
 - `Attachment`
+- `AttachmentAccessLog`
 
 Campos sugeridos para `attachments`:
 
@@ -1145,14 +1170,23 @@ owner_type                CONTRACTING_REQUEST | CLIENT | PROFORMA | CONTRACT | T
 owner_id
 file_category             PHOTO | VIDEO | AUDIO | PDF | CONTRACT | INVOICE | RECEIPT | TECHNICAL_DOCUMENT | OTHER
 storage_provider          AWS_S3 | AZURE_BLOB
+storage_region
 bucket_name
 container_name
 object_key
+object_version_id
 original_filename
 content_type
 file_size_bytes
 checksum_sha256
 visibility                PRIVATE | PUBLIC_READ | SIGNED_URL
+status                    UPLOAD_REQUESTED | UPLOADED | SCANNING | AVAILABLE | REJECTED | DELETED
+scan_status               PENDING | CLEAN | INFECTED | FAILED | SKIPPED
+encryption_method         SSE_S3 | SSE_KMS | AZURE_MANAGED | AZURE_CMK
+kms_key_id nullable
+uploaded_at
+available_at
+expires_at nullable
 uploaded_by_user_id nullable
 uploaded_by_client_contact_id nullable
 uploaded_from_public_form
@@ -1161,24 +1195,51 @@ created_at
 deleted_at
 ```
 
+Campos sugeridos para `attachment_access_logs`:
+
+```text
+id
+attachment_id
+company_id
+accessed_by_user_id nullable
+accessed_by_client_contact_id nullable
+action                    VIEW | DOWNLOAD | DELETE | UPLOAD_CONFIRM | PRESIGNED_UPLOAD_REQUEST | PRESIGNED_DOWNLOAD_REQUEST
+source_ip
+user_agent
+accessed_at
+```
+
 Reglas:
 
 - Guardar `object_key`, no una URL publica permanente.
 - Para acceso a archivos privados, generar URLs firmadas temporales.
+- Los clientes, visitantes publicos y frontends no deben subir archivos pasando por el backend; deben usar pre-signed POST/PUT en S3 o SAS/presigned URL en Azure Blob.
 - Para AWS S3, `bucket_name` identifica el bucket y `object_key` la ruta del objeto.
 - Para Azure Blob Storage, `container_name` identifica el contenedor y `object_key` el blob.
-- Separar objetos por tenant y modulo con una ruta estable:
+- Guardar `storage_region`, `bucket_name` o `container_name`, `object_key` y `object_version_id` cuando el proveedor lo soporte.
+- Separar objetos por tenant, ambiente y modulo con una ruta estable:
 
 ```text
-company/{company_id}/module/{owner_module}/{owner_type}/{owner_id}/{attachment_id}
+company/{company_id}/env/{environment}/module/{owner_module}/owner/{owner_type}/{owner_id}/attachment/{attachment_id}/{original_filename}
 ```
 
+- Usar buckets o contenedores separados por ambiente, por ejemplo `obralink-dev-attachments`, `obralink-staging-attachments` y `obralink-prod-attachments`.
 - Activar versionado del bucket o contenedor cuando aplique a contratos o documentos legales.
 - Configurar lifecycle rules para mover archivos antiguos a AWS Glacier, S3 Infrequent Access, Azure Cool o Azure Archive.
 - Los adjuntos temporales de formularios publicos deben expirar o eliminarse si la solicitud no se confirma.
 - Validar extensiones, `content_type`, tamano maximo y `checksum_sha256` antes de confirmar el adjunto.
+- Validar tamano y tipo segun categoria, por ejemplo fotos hasta 15MB, PDFs hasta 50MB, videos hasta 500MB y audios hasta 100MB, ajustable por configuracion.
+- Todo upload publico debe pasar por estado `SCANNING` antes de quedar `AVAILABLE`.
+- El flujo recomendado es `UPLOAD_REQUESTED -> UPLOADED -> SCANNING -> AVAILABLE` o `REJECTED`.
+- Para AWS, preferir SSE-KMS en documentos legales o sensibles y guardar `kms_key_id`.
+- Para Azure, usar claves administradas o customer-managed keys cuando aplique y registrar `encryption_method`.
+- No exponer buckets publicamente. Para visualizacion de fotos, videos o PDFs, usar URL firmada de S3/Azure o CloudFront privado con signed URLs/signed cookies.
+- Para procesamiento asincrono en AWS, usar eventos de S3 hacia SQS y workers que calculen metadata, thumbnails, duracion, checksum y resultado de antivirus.
+- Para procesamiento asincrono en Azure, usar Event Grid o Queue Storage con workers equivalentes.
 - Procesar videos y audios de forma asincrona si requieren transcodificacion, extraccion de metadata o analisis posterior.
 - Los uploads publicos deben usar URLs prefirmadas con expiracion corta, limites de tamano y restricciones de tipo.
+- Registrar en `attachment_access_logs` cada solicitud de URL firmada, visualizacion, descarga, confirmacion de upload y eliminacion.
+- Aplicar validacion multi-tenant en backend: un usuario de una empresa no debe poder generar URL firmada para objetos de otra empresa aunque conozca el `object_key`.
 
 #### 4. documents
 
@@ -1474,7 +1535,7 @@ projects
 #### Fase 3: Adjuntos Y Almacenamiento Externo
 
 - Crear modulo `attachments`.
-- Crear entidad `Attachment`.
+- Crear entidades `Attachment` y `AttachmentAccessLog`.
 - Crear abstraccion de almacenamiento para AWS S3 y Azure Blob Storage.
 - Crear endpoints para solicitar URLs prefirmadas de carga y descarga.
 - Crear endpoints para confirmar adjuntos cargados y asociarlos a `owner_module`, `owner_type` y `owner_id`.
@@ -1482,6 +1543,12 @@ projects
 - Validar `content_type`, tamano maximo, checksum y categoria de archivo.
 - Definir estructura de `object_key` por empresa, modulo, entidad y adjunto.
 - Crear reglas de lifecycle para archivos temporales, adjuntos publicos no confirmados y documentos historicos.
+- Implementar estados `UPLOAD_REQUESTED`, `UPLOADED`, `SCANNING`, `AVAILABLE`, `REJECTED` y `DELETED`.
+- Implementar escaneo antivirus/malware para uploads publicos antes de marcar adjuntos como `AVAILABLE`.
+- Implementar workers asincronos con S3 Event + SQS o Azure Event Grid/Queue Storage.
+- Registrar `storage_region`, `object_version_id`, `encryption_method` y `kms_key_id` cuando aplique.
+- Configurar buckets o contenedores separados por ambiente y bloqueo de acceso publico.
+- Crear auditoria de acceso para solicitudes de URL firmada, visualizaciones, descargas, confirmaciones y eliminaciones.
 
 #### Fase 4: Documentacion Tecnica
 
