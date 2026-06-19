@@ -136,6 +136,7 @@ flowchart LR
         UC23[Revisar solicitud recibida]
         UC24[Vincular o registrar cliente]
         UC25[Asignar asesor comercial]
+        UC26[Adjuntar documentacion tecnica]
     end
 
     Cliente --> UC1
@@ -143,7 +144,9 @@ flowchart LR
     Cliente --> UC17
     Cliente --> UC18
     Cliente --> UC20
+    Cliente --> UC26
     Visitante --> UC2
+    Visitante --> UC26
 
     Asesor --> UC1
     Asesor --> UC2
@@ -164,6 +167,7 @@ flowchart LR
     Documental --> UC7
     Documental --> UC8
     Documental --> UC9
+    Documental --> UC26
 
     Compras --> UC10
     Compras --> UC11
@@ -182,6 +186,7 @@ flowchart LR
     UC23 -. incluye .-> UC24
     UC23 -. incluye .-> UC25
     UC25 -. habilita .-> UC14
+    UC26 -. habilita .-> UC7
     UC4 -. extiende .-> UC5
     UC5 -. incluye .-> UC6
     UC7 -. extiende .-> UC8
@@ -208,6 +213,13 @@ erDiagram
         string identification_number
         string email
         string phone
+        string address_line1
+        string address_line2
+        string city
+        string state
+        string county
+        string postal_code
+        string country
         string status
     }
 
@@ -235,6 +247,16 @@ erDiagram
         string requester_email
         string requester_phone
         string requester_identification
+        string site_address_line1
+        string site_address_line2
+        string site_city
+        string site_state
+        string site_county
+        string site_postal_code
+        string site_country
+        string site_reference
+        decimal site_latitude
+        decimal site_longitude
         string public_tracking_code
         string email_verification_token
         boolean captcha_verified
@@ -385,10 +407,34 @@ erDiagram
     DOCUMENT_VERSION {
         uuid id PK
         uuid technical_document_id FK
+        uuid attachment_id FK
         int version_number
-        string file_url
         string status
         datetime created_at
+    }
+
+    ATTACHMENT {
+        uuid id PK
+        uuid company_id
+        string owner_module
+        string owner_type
+        uuid owner_id
+        string file_category
+        string storage_provider
+        string bucket_name
+        string container_name
+        string object_key
+        string original_filename
+        string content_type
+        int file_size_bytes
+        string checksum_sha256
+        string visibility
+        uuid uploaded_by_user_id
+        uuid uploaded_by_client_contact_id
+        boolean uploaded_from_public_form
+        string metadata_json
+        datetime created_at
+        datetime deleted_at
     }
 
     PERMIT {
@@ -482,8 +528,8 @@ erDiagram
     CONTRACT_VERSION {
         uuid id PK
         uuid contract_id FK
+        uuid attachment_id FK
         int version_number
-        string file_url
         string status
         datetime created_at
     }
@@ -553,8 +599,16 @@ erDiagram
     WORK_SITE {
         uuid id PK
         uuid project_id FK
-        string address
+        string address_line1
+        string address_line2
         string city
+        string state
+        string county
+        string postal_code
+        string country
+        string reference
+        decimal latitude
+        decimal longitude
         string site_condition
     }
 
@@ -584,7 +638,7 @@ erDiagram
 
     CONTRACTING_REQUEST ||--o| PROJECT_CLASSIFICATION : classified_as
     CONTRACTING_REQUEST ||--o| CONTRACTING_REQUEST_REQUIREMENT_SUMMARY : summarizes
-    CONTRACTING_REQUEST ||--|| PROFORMA : creates
+    CONTRACTING_REQUEST ||--o| PROFORMA : creates
     PROFORMA ||--o{ PROFORMA_VERSION : versions
     PROFORMA_VERSION ||--o{ PROFORMA_LINE : contains
     PROFORMA ||--o{ COMMERCIAL_NEGOTIATION : negotiated_by
@@ -599,6 +653,7 @@ erDiagram
     CONTRACTING_REQUEST ||--o{ TECHNICAL_DOCUMENT : documents
     TECHNICAL_DOCUMENT ||--o{ DOCUMENT_REVIEW : reviewed_by
     TECHNICAL_DOCUMENT ||--o{ DOCUMENT_VERSION : versions
+    ATTACHMENT ||--o{ DOCUMENT_VERSION : stores
     CONTRACTING_REQUEST ||--o{ DOCUMENT_REQUIREMENT : requires
 
     CONTRACTING_REQUEST ||--o{ PERMIT_REQUIREMENT : needs
@@ -617,6 +672,7 @@ erDiagram
     CONTRACTING_REQUEST ||--o| CONTRACT : becomes
     PROFORMA_VERSION ||--o| CONTRACT : approved_for
     CONTRACT ||--o{ CONTRACT_VERSION : versions
+    ATTACHMENT ||--o{ CONTRACT_VERSION : stores
     CONTRACT_VERSION ||--o{ CONTRACT_CLAUSE : contains
     CONTRACT ||--o{ CONTRACT_NEGOTIATION : negotiated_by
 
@@ -632,6 +688,14 @@ erDiagram
     PROJECT ||--o| PROJECT_SCOPE : defines
     PROJECT ||--o{ PROJECT_MILESTONE : tracks
     PROFORMA_VERSION ||--o| PROJECT_SCOPE : basis_for
+
+    CONTRACTING_REQUEST ||--o{ ATTACHMENT : attaches
+    TECHNICAL_VISIT ||--o{ ATTACHMENT : attaches
+    TECHNICAL_INSPECTION ||--o{ ATTACHMENT : attaches
+    PROFORMA ||--o{ ATTACHMENT : attaches
+    CONTRACT ||--o{ ATTACHMENT : attaches
+    PROJECT ||--o{ ATTACHMENT : attaches
+    PAYMENT_RECORD ||--o{ ATTACHMENT : attaches
 ```
 
 Nota: `company_id` y los campos terminados en `_user_id` son referencias externas al modulo `identity`. El ER mantiene esas referencias como IDs para conservar limites entre modulos.
@@ -722,6 +786,16 @@ requester_name
 requester_email
 requester_phone
 requester_identification
+site_address_line1
+site_address_line2
+site_city
+site_state
+site_county
+site_postal_code
+site_country
+site_reference
+site_latitude nullable
+site_longitude nullable
 public_tracking_code
 email_verification_token
 captcha_verified
@@ -741,6 +815,10 @@ Reglas:
 - Una solicitud `PUBLIC_WEB` debe guardar los datos capturados del solicitante, `public_tracking_code`, verificacion de correo cuando aplique, `captcha_verified`, `source_ip` y `user_agent`.
 - Si el solicitante ya existe como cliente, el sistema puede vincular la solicitud a `client_id`.
 - Si el solicitante no existe como cliente, la solicitud queda pendiente de revision para que un asesor comercial cree o vincule el cliente.
+- La solicitud debe poder registrar la ubicacion inicial del sitio de trabajo mediante direccion, ciudad, estado, condado, ZIP code, pais y referencia.
+- `site_latitude` y `site_longitude` son opcionales; pueden venir del formulario publico, del portal del cliente o de una geocodificacion posterior.
+- La ubicacion pertenece a la solicitud, no al cliente, porque un mismo cliente puede tener trabajos en diferentes sitios.
+- Al crear la obra, la ubicacion de la solicitud debe copiarse o consolidarse en `projects.work_sites`.
 - Las solicitudes creadas por cliente autenticado o por pagina publica deben iniciar en `SUBMITTED` o `PENDING_REVIEW`, no deben pasar directamente a una proforma formal sin revision interna.
 - `assigned_advisor_id` identifica al asesor responsable de revisar, clasificar y continuar el flujo comercial.
 - La auditoria de una solicitud sin usuario autenticado debe basarse en canal de origen, datos capturados, IP, user agent, codigo publico de seguimiento y evidencia de verificacion.
@@ -932,12 +1010,17 @@ company_id
 client_type              PERSON | COMPANY
 display_name
 legal_name
-identification_type      CEDULA | RUC | PASSPORT | TAX_ID | OTHER
+identification_type      EIN | ITIN | PASSPORT | DRIVER_LICENSE | STATE_ID | TAX_ID | OTHER
 identification_number
 email
 phone
-address
+address_line1
+address_line2
 city
+state
+county
+postal_code
+country
 status
 created_at
 updated_at
@@ -949,7 +1032,12 @@ Reglas:
 - Si `client_type = PERSON`, `display_name` representa el nombre de la persona.
 - Si `client_type = COMPANY`, `display_name` representa el nombre comercial y `legal_name` la razon social.
 - `identification_number` debe ser unico por `company_id` cuando exista y el registro no este eliminado.
-- Toda solicitud de contratacion debe apuntar a `client_id`, sin importar si el cliente es persona o empresa.
+- Toda solicitud de contratacion aceptada para analisis comercial debe apuntar a `client_id`, sin importar si el cliente es persona o empresa.
+- Una solicitud `PUBLIC_WEB` puede existir temporalmente sin `client_id` mientras esta en revision.
+- Para clientes de Estados Unidos, `state` debe almacenar el codigo postal del estado en formato ISO/USPS de dos letras, por ejemplo `FL`, `TX` o `NY`.
+- `postal_code` debe soportar ZIP de 5 digitos y ZIP+4.
+- `country` debe existir aunque el valor por defecto operativo sea `US`.
+- No se debe almacenar SSN completo salvo que exista una necesidad legal explicita; si se requiere trazabilidad, preferir tokenizacion, ultimos 4 digitos o referencia externa segura.
 
 Campos sugeridos para `client_contacts`:
 
@@ -1029,13 +1117,78 @@ commercial.proformas.mark_needs_revision
 commercial.proformas.version
 ```
 
-#### 3. documents
+#### 3. attachments
+
+Responsable de almacenar metadatos y referencias de archivos adjuntos guardados en proveedores externos como AWS S3 o Azure Blob Storage.
+
+Este modulo no debe guardar archivos binarios en la base de datos. Solo guarda metadatos, ownership logico, proveedor de almacenamiento y `object_key`.
+
+Procesos:
+
+- Registrar adjuntos de solicitudes de contratacion, clientes, visitas tecnicas, inspecciones, proformas, contratos, pagos y obras.
+- Generar URLs firmadas temporales para carga, descarga o visualizacion.
+- Validar tipo de archivo, tamano maximo, checksum y visibilidad.
+- Registrar adjuntos enviados desde formularios publicos.
+- Asociar fotos, videos, audios, PDFs, contratos, facturas, recibos y documentos tecnicos a entidades del sistema.
+
+Entidades sugeridas:
+
+- `Attachment`
+
+Campos sugeridos para `attachments`:
+
+```text
+id
+company_id
+owner_module              commercial | technical | documents | contracts | billing | projects
+owner_type                CONTRACTING_REQUEST | CLIENT | PROFORMA | CONTRACT | TECHNICAL_VISIT | TECHNICAL_INSPECTION | PROJECT | PAYMENT_RECORD | TECHNICAL_DOCUMENT
+owner_id
+file_category             PHOTO | VIDEO | AUDIO | PDF | CONTRACT | INVOICE | RECEIPT | TECHNICAL_DOCUMENT | OTHER
+storage_provider          AWS_S3 | AZURE_BLOB
+bucket_name
+container_name
+object_key
+original_filename
+content_type
+file_size_bytes
+checksum_sha256
+visibility                PRIVATE | PUBLIC_READ | SIGNED_URL
+uploaded_by_user_id nullable
+uploaded_by_client_contact_id nullable
+uploaded_from_public_form
+metadata_json
+created_at
+deleted_at
+```
+
+Reglas:
+
+- Guardar `object_key`, no una URL publica permanente.
+- Para acceso a archivos privados, generar URLs firmadas temporales.
+- Para AWS S3, `bucket_name` identifica el bucket y `object_key` la ruta del objeto.
+- Para Azure Blob Storage, `container_name` identifica el contenedor y `object_key` el blob.
+- Separar objetos por tenant y modulo con una ruta estable:
+
+```text
+company/{company_id}/module/{owner_module}/{owner_type}/{owner_id}/{attachment_id}
+```
+
+- Activar versionado del bucket o contenedor cuando aplique a contratos o documentos legales.
+- Configurar lifecycle rules para mover archivos antiguos a AWS Glacier, S3 Infrequent Access, Azure Cool o Azure Archive.
+- Los adjuntos temporales de formularios publicos deben expirar o eliminarse si la solicitud no se confirma.
+- Validar extensiones, `content_type`, tamano maximo y `checksum_sha256` antes de confirmar el adjunto.
+- Procesar videos y audios de forma asincrona si requieren transcodificacion, extraccion de metadata o analisis posterior.
+- Los uploads publicos deben usar URLs prefirmadas con expiracion corta, limites de tamano y restricciones de tipo.
+
+#### 4. documents
 
 Responsable de documentacion tecnica.
 
 Procesos:
 
 - Determinar si se requiere documentacion tecnica.
+- Recibir documentacion tecnica existente enviada por el cliente.
+- Permitir que el responsable documental adjunte documentacion tecnica del proyecto.
 - Revisar documentacion tecnica existente.
 - Generar documentacion tecnica.
 - Asociar documentos a solicitud de contratacion, cliente u obra.
@@ -1047,13 +1200,25 @@ Entidades sugeridas:
 - `DocumentRequirement`
 - `DocumentVersion`
 
+Reglas:
+
+- `DocumentVersion` debe apuntar a `attachment_id` para ubicar el archivo fisico.
+- `documents` define el significado tecnico del documento; `attachments` define donde esta almacenado y como accederlo.
+- No guardar `file_url` permanente en `DocumentVersion`; solicitar al modulo `attachments` una URL firmada temporal cuando se necesite consultar o descargar el archivo.
+- El cliente autenticado puede adjuntar documentacion tecnica existente desde su portal.
+- Un visitante desde pagina publica puede adjuntar documentacion tecnica inicial al crear la solicitud, siempre usando restricciones de tipo, tamano y expiracion.
+- El responsable documental puede adjuntar, clasificar, reemplazar o versionar documentacion tecnica del proyecto.
+- Los archivos enviados por cliente o visitante deben registrarse primero como `Attachment` y luego vincularse a `TechnicalDocument` o `DocumentVersion` cuando sean aceptados en revision documental.
+- Las categorias permitidas para documentacion tecnica incluyen `PDF`, `PHOTO`, `TECHNICAL_DOCUMENT` y `OTHER`; videos y audios deben tratarse como evidencia o soporte, no como documento tecnico principal salvo regla explicita.
+
 Eventos sugeridos:
 
 - `TechnicalDocumentationRequired`
+- `TechnicalDocumentationSubmitted`
 - `TechnicalDocumentationReviewed`
 - `TechnicalDocumentationGenerated`
 
-#### 4. permits
+#### 5. permits
 
 Responsable de permisos requeridos por el proyecto.
 
@@ -1075,7 +1240,7 @@ Eventos sugeridos:
 - `PermitRequirementsDetected`
 - `PermitRequirementUpdated`
 
-#### 5. procurement
+#### 6. procurement
 
 Responsable de subcontratacion y costos externos.
 
@@ -1101,7 +1266,7 @@ Eventos sugeridos:
 - `SubcontractorCostsEvaluated`
 - `SubcontractorCostsIntegrated`
 
-#### 6. contracts
+#### 7. contracts
 
 Responsable de la negociacion y generacion contractual.
 
@@ -1118,13 +1283,19 @@ Entidades sugeridas:
 - `ContractNegotiation`
 - `ContractClause`
 
+Reglas:
+
+- `ContractVersion` debe apuntar a `attachment_id` para conservar cada version legal del contrato.
+- Los contratos firmados o aceptados deben almacenarse como adjuntos privados con acceso mediante URL firmada temporal.
+- Si se requiere historial legal fuerte, activar versionado del bucket/contenedor y conservar `checksum_sha256` del archivo.
+
 Eventos sugeridos:
 
 - `ContractNegotiationStarted`
 - `ContractGenerated`
 - `ContractSigned`
 
-#### 7. billing
+#### 8. billing
 
 Responsable de anticipos, pagos y seguimiento de cobranza.
 
@@ -1149,7 +1320,7 @@ Eventos sugeridos:
 - `AdvancePaymentReceived`
 - `CollectionFollowUpCreated`
 
-#### 8. projects
+#### 9. projects
 
 Responsable de la obra despues de la aprobacion comercial y contractual.
 
@@ -1157,6 +1328,7 @@ Procesos:
 
 - Crear obra.
 - Vincular obra con cliente, solicitud de contratacion, contrato y alcance aprobado.
+- Crear o consolidar ubicacion de obra desde la ubicacion registrada en la solicitud de contratacion.
 
 Entidades sugeridas:
 
@@ -1227,6 +1399,11 @@ technical
   RequirementsCollected
         |
         v
+attachments
+  AttachmentUploaded
+  AttachmentLinked
+        |
+        v
 documents
   TechnicalDocumentationRequired
   TechnicalDocumentationReviewed
@@ -1294,50 +1471,67 @@ projects
 - Crear endpoints para completar inspeccion y levantar requerimientos.
 - Conectar solicitud de contratacion con visita tecnica mediante `contractingRequestId`.
 
-#### Fase 3: Documentacion Tecnica
+#### Fase 3: Adjuntos Y Almacenamiento Externo
+
+- Crear modulo `attachments`.
+- Crear entidad `Attachment`.
+- Crear abstraccion de almacenamiento para AWS S3 y Azure Blob Storage.
+- Crear endpoints para solicitar URLs prefirmadas de carga y descarga.
+- Crear endpoints para confirmar adjuntos cargados y asociarlos a `owner_module`, `owner_type` y `owner_id`.
+- Crear endpoints seguros para adjuntos enviados desde portal de cliente y pagina publica.
+- Validar `content_type`, tamano maximo, checksum y categoria de archivo.
+- Definir estructura de `object_key` por empresa, modulo, entidad y adjunto.
+- Crear reglas de lifecycle para archivos temporales, adjuntos publicos no confirmados y documentos historicos.
+
+#### Fase 4: Documentacion Tecnica
 
 - Crear modulo `documents`.
-- Crear entidades `TechnicalDocument`, `DocumentReview` y `DocumentRequirement`.
+- Crear entidades `TechnicalDocument`, `DocumentReview`, `DocumentRequirement` y `DocumentVersion`.
 - Crear endpoints para registrar documentacion existente.
+- Crear endpoints para que cliente autenticado o visitante publico adjunte documentacion tecnica existente.
 - Crear endpoints para revisar o generar documentacion tecnica.
+- Crear endpoints para que el responsable documental clasifique, acepte, rechace o versione documentos adjuntos.
+- Conectar `DocumentVersion` con `Attachment` mediante `attachmentId`.
 
-#### Fase 4: Permisos
+#### Fase 5: Permisos
 
 - Crear modulo `permits`.
 - Crear entidades `Permit`, `PermitRequirement` y `PermitChecklist`.
 - Crear endpoints para detectar y administrar permisos requeridos.
 
-#### Fase 5: Subcontratacion
+#### Fase 6: Subcontratacion
 
 - Crear modulo `procurement`.
 - Crear entidades `Subcontractor`, `Specialty`, `SubcontractorQuoteRequest`, `SubcontractorQuote` y `ExternalCostEvaluation`.
 - Crear endpoints para solicitar y evaluar cotizaciones.
 - Integrar costos externos en la proforma.
 
-#### Fase 6: Contratos
+#### Fase 7: Contratos
 
 - Crear modulo `contracts`.
 - Crear entidades `Contract`, `ContractVersion` y `ContractNegotiation`.
 - Crear endpoints para iniciar negociacion contractual despues de proforma aprobada.
+- Conectar `ContractVersion` con `Attachment` mediante `attachmentId`.
 - Definir si se requiere anticipo antes de generar contrato.
 
-#### Fase 7: Anticipos Y Cobranza
+#### Fase 8: Anticipos Y Cobranza
 
 - Crear modulo `billing`.
 - Crear entidades `AdvancePayment`, `PaymentRequest`, `PaymentRecord` y `CollectionFollowUp`.
 - Crear endpoints para solicitar anticipo y registrar pagos.
 - Notificar a `contracts` cuando el anticipo requerido fue recibido.
 
-#### Fase 8: Generacion Contractual
+#### Fase 9: Generacion Contractual
 
 - Completar endpoints de `contracts` para generar contrato despues de anticipo recibido o cuando no se requiere anticipo.
 - Registrar firma o aceptacion del contrato cuando aplique.
 
-#### Fase 9: Creacion De Obra
+#### Fase 10: Creacion De Obra
 
 - Crear modulo `projects`.
 - Crear entidades `Project`, `WorkSite` y `ProjectScope`.
 - Crear endpoint para crear obra desde contrato generado y aceptado o firmado, segun la regla contractual configurada.
+- Copiar o consolidar direccion, ciudad, estado, condado, ZIP code, pais, referencia y coordenadas desde la solicitud de contratacion hacia `WorkSite`.
 - Mantener referencias a `clientId`, `contractingRequestId`, `contractId` y `companyId`.
 
 ### Primer Corte Recomendado
