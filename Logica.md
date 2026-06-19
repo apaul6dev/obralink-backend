@@ -118,6 +118,7 @@ flowchart LR
     end
 
     Cliente --> UC1
+    Cliente --> UC2
     Cliente --> UC17
     Cliente --> UC18
     Cliente --> UC20
@@ -196,8 +197,21 @@ erDiagram
         uuid id PK
         uuid company_id
         uuid client_id FK
+        uuid client_contact_id FK
+        uuid created_by_user_id
+        uuid assigned_advisor_id
+        string origin_channel
         string status
         string source
+        string requester_name
+        string requester_email
+        string requester_phone
+        string requester_identification
+        string public_tracking_code
+        string email_verification_token
+        boolean captcha_verified
+        string source_ip
+        string user_agent
         string description
         datetime created_at
     }
@@ -612,6 +626,9 @@ Procesos:
 - Captar cliente.
 - Registrar cliente.
 - Crear solicitud de contratacion.
+- Recibir solicitud de contratacion desde portal de cliente.
+- Recibir solicitud de contratacion desde pagina web publica.
+- Asignar asesor comercial responsable.
 - Clasificar tipo de proyecto.
 - Definir alcance interno del trabajo.
 - Generar proforma.
@@ -637,6 +654,8 @@ Eventos sugeridos:
 
 - `ClientRegistered`
 - `ContractingRequestCreated`
+- `ContractingRequestSubmitted`
+- `ContractingRequestAssigned`
 - `ContractingRequestClassified`
 - `ProformaDraftCreated`
 - `ProformaGenerated`
@@ -648,6 +667,55 @@ Eventos sugeridos:
 - `ProformaApproved`
 - `ContractingRequestLost`
 
+Origen de solicitudes de contratacion:
+
+Una solicitud de contratacion puede ser creada desde tres canales:
+
+```text
+INTERNAL      -> creada por un asesor comercial desde el sistema interno
+CLIENT_AUTH   -> creada por un cliente autenticado desde su portal
+PUBLIC_WEB    -> creada por una persona desde una pagina web publica sin usuario
+```
+
+Campos sugeridos para `contracting_requests`:
+
+```text
+id
+company_id
+client_id nullable
+client_contact_id nullable
+created_by_user_id nullable
+assigned_advisor_id nullable
+origin_channel          INTERNAL | CLIENT_AUTH | PUBLIC_WEB
+status
+source
+requester_name
+requester_email
+requester_phone
+requester_identification
+public_tracking_code
+email_verification_token
+captcha_verified
+source_ip
+user_agent
+description
+created_at
+updated_at
+deleted_at
+```
+
+Reglas:
+
+- Si `origin_channel = INTERNAL`, la solicitud es creada por un asesor comercial y debe registrar `created_by_user_id`.
+- Si `origin_channel = CLIENT_AUTH`, la solicitud es creada por un cliente autenticado y debe registrar el usuario o contacto que la creo.
+- Si `origin_channel = PUBLIC_WEB`, la solicitud puede crearse sin `client_id`, sin `client_contact_id` y sin `created_by_user_id`.
+- Una solicitud `PUBLIC_WEB` debe guardar los datos capturados del solicitante, `public_tracking_code`, verificacion de correo cuando aplique, `captcha_verified`, `source_ip` y `user_agent`.
+- Si el solicitante ya existe como cliente, el sistema puede vincular la solicitud a `client_id`.
+- Si el solicitante no existe como cliente, la solicitud queda pendiente de revision para que un asesor comercial cree o vincule el cliente.
+- Las solicitudes creadas por cliente autenticado o por pagina publica deben iniciar en `SUBMITTED` o `PENDING_REVIEW`, no deben pasar directamente a una proforma formal sin revision interna.
+- `assigned_advisor_id` identifica al asesor responsable de revisar, clasificar y continuar el flujo comercial.
+- La auditoria de una solicitud sin usuario autenticado debe basarse en canal de origen, datos capturados, IP, user agent, codigo publico de seguimiento y evidencia de verificacion.
+
 Gestion de proformas:
 
 La proforma tiene dos momentos distintos:
@@ -655,14 +723,20 @@ La proforma tiene dos momentos distintos:
 - Creacion de proforma borrador.
 - Generacion de proforma presentable al cliente.
 
-Al crear una solicitud de contratacion, el sistema debe crear automaticamente una proforma inicial en estado `DRAFT`. Esta proforma funciona como contenedor de alcance, cantidades, costos, impuestos, notas comerciales y condiciones que se van completando durante el proceso.
+Al crear o aceptar internamente una solicitud de contratacion, el sistema debe crear una proforma inicial en estado `DRAFT`. Esta proforma funciona como contenedor de alcance, cantidades, costos, impuestos, notas comerciales y condiciones que se van completando durante el proceso.
+
+Reglas segun origen:
+
+- Si la solicitud fue creada por un asesor comercial (`INTERNAL`), la proforma `DRAFT` puede crearse automaticamente al registrar la solicitud.
+- Si la solicitud fue creada por un cliente autenticado (`CLIENT_AUTH`) o desde pagina publica (`PUBLIC_WEB`), primero debe pasar por revision interna, vinculacion de cliente y asignacion de asesor.
+- La proforma `DRAFT` se crea cuando la solicitud queda aceptada para analisis comercial, no simplemente por recibir un formulario publico.
 
 En el diagrama, el paso `Generar proforma` no significa crear el registro inicial, sino convertir la proforma trabajada en una version formal y presentable al cliente.
 
 En el flujo:
 
 ```text
-Crear solicitud de contratacion
+Crear o aceptar solicitud de contratacion
   -> Crear proforma DRAFT
   -> Completar analisis tecnico, documental, permisos, subcontratacion y alcance
   -> Definir alcance interno del trabajo
@@ -698,7 +772,7 @@ CANCELLED
 
 Reglas:
 
-- `DRAFT`: se crea automaticamente al crear la solicitud de contratacion.
+- `DRAFT`: se crea automaticamente al crear una solicitud interna o al aceptar una solicitud recibida desde cliente autenticado o pagina publica.
 - `IN_REVIEW`: se esta alimentando con visitas, requerimientos, documentos, permisos, costos externos y alcance.
 - `NEEDS_REVISION`: algun cambio tecnico, documental, de permisos, subcontratacion o alcance obliga a revisar.
 - `GENERATED`: el alcance interno esta definido y existe una version formal lista para enviar.
@@ -1112,6 +1186,8 @@ src/modules/<module-name>
 commercial
   ClientRegistered
   ContractingRequestCreated
+  ContractingRequestSubmitted
+  ContractingRequestAssigned
   ProformaDraftCreated
   ContractingRequestClassified
         |
@@ -1171,7 +1247,11 @@ projects
 - Crear entidades `Client`, `ClientContact`, `ContractingRequest`, `ProjectClassification`, `Proforma`, `ProformaVersion`, `ProformaLine`, `CommercialNegotiation` y `CommercialNegotiationItem`.
 - Crear CRUD inicial de clientes.
 - Crear CRUD inicial de solicitudes de contratacion.
-- Crear proforma `DRAFT` automaticamente al crear solicitud de contratacion.
+- Crear endpoint interno para solicitudes creadas por asesor comercial.
+- Crear endpoint autenticado para solicitudes creadas desde portal de cliente.
+- Crear endpoint publico para solicitudes creadas desde pagina web publica.
+- Crear endpoints para revisar, vincular cliente y asignar asesor comercial a solicitudes `PUBLIC_WEB`.
+- Crear proforma `DRAFT` automaticamente al crear una solicitud interna o al aceptar una solicitud recibida desde cliente autenticado o pagina publica.
 - Crear endpoints para clasificar solicitud de contratacion.
 - Crear endpoints para versionar, generar, enviar y aprobar proforma.
 - Crear endpoints para registrar negociacion comercial y generar nueva version cuando el cliente solicita cambios.
@@ -1239,7 +1319,7 @@ El primer incremento funcional debe cubrir:
 - Creacion de solicitud de contratacion.
 - Clasificacion de solicitud de contratacion.
 - Decision de visita tecnica.
-- Creacion automatica de proforma `DRAFT`.
+- Creacion automatica de proforma `DRAFT` para solicitudes internas o aceptadas despues de revision.
 - Generacion basica de una version formal de proforma.
 
 Este corte crea la columna vertebral del flujo sin bloquearse por documentos, permisos, subcontratistas, contratos o pagos.
