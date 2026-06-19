@@ -3,86 +3,104 @@
 ```mermaid
 flowchart TD
 
-    A([Inicio]) --> B[Captar cliente]
-    B --> C[Registrar cliente]
-    C --> D[Solicitud de contratacion]
-    D --> E[Clasificar tipo de proyecto]
+    A([Inicio]) --> B{Origen de solicitud}
 
-    E --> F{¿Requiere visita técnica?}
+    B -- Interna --> C[Captar cliente]
+    C --> D[Registrar o vincular cliente]
+    D --> E[Crear solicitud de contratacion]
 
-    F -- Sí --> G[Programar visita técnica]
-    G --> H[Realizar inspección técnica]
-    H --> I[Levantar requerimientos]
+    B -- Cliente autenticado --> F[Recibir solicitud desde portal de cliente]
+    B -- Pagina publica --> G[Recibir solicitud desde formulario publico]
+    G --> H[Validar captcha y verificacion de correo]
 
-    F -- No --> I
+    F --> I[Revision interna de solicitud]
+    H --> I
 
-    I --> J{¿Obra nueva o existente?}
+    I --> J{¿Solicitud aceptada para analisis?}
+    J -- No --> K[Cerrar solicitud no concretada]
+    J -- Sí --> L[Vincular o registrar cliente]
+    L --> M[Asignar asesor comercial]
+    M --> N[Crear proforma DRAFT]
 
-    J --> K{¿El proyecto requiere documentación técnica?}
+    E --> N
+    N --> O[Clasificar tipo de proyecto]
 
-    K -- No --> Q[Detectar permisos necesarios]
+    O --> P{¿Requiere visita técnica?}
 
-    K -- Sí --> L{¿Existe documentación técnica?}
+    P -- Sí --> Q[Programar visita técnica]
+    Q --> R[Realizar inspección técnica]
+    R --> S[Levantar requerimientos]
 
-    L -- Sí --> M[Revisar documentación técnica existente]
-    M --> Q
+    P -- No --> S
 
-    L -- No --> N{¿Es necesario generar documentación técnica?}
+    S --> T{¿Obra nueva o existente?}
 
-    N -- Sí --> O[Realizar levantamiento técnico]
-    O --> P[Generar documentación técnica]
-    P --> Q
+    T --> U{¿El proyecto requiere documentación técnica?}
 
-    N -- No --> Q
+    U -- No --> AB[Detectar permisos necesarios]
 
-    Q --> R{¿Requiere subcontratación?}
+    U -- Sí --> V{¿Existe documentación técnica?}
 
-    R -- Sí --> S[Identificar especialidades externas]
-    S --> T[Solicitar cotizaciones a subcontratistas]
-    T --> U[Evaluar costos, tiempos y alcance externo]
-    U --> V[Integrar costos de subcontratación]
-    V --> W[Definir alcance interno del trabajo]
+    V -- Sí --> W[Revisar documentación técnica existente]
+    W --> AB
 
-    R -- No --> W
+    V -- No --> X{¿Es necesario generar documentación técnica?}
 
-    W --> X[Generar proforma]
+    X -- Sí --> Y[Realizar levantamiento técnico]
+    Y --> Z[Generar documentación técnica]
+    Z --> AB
 
-    X --> Y{¿Proforma aprobada?}
+    X -- No --> AB
 
-    Y -- No --> Z[Negociación comercial]
-    Z --> AA{¿Nueva propuesta aceptada?}
+    AB --> AC{¿Requiere subcontratación?}
 
-    AA -- No --> AB[Cerrar solicitud no concretada]
+    AC -- Sí --> AD[Identificar especialidades externas]
+    AD --> AE[Solicitar cotizaciones a subcontratistas]
+    AE --> AF[Evaluar costos, tiempos y alcance externo]
+    AF --> AG[Integrar costos de subcontratación]
+    AG --> AH[Definir alcance interno del trabajo]
 
-    AA -- Sí --> AC[Actualizar proforma]
-    AC --> X
+    AC -- No --> AH
 
-    Y -- Sí --> AD[Negociación contractual]
+    AH --> AI[Generar proforma]
 
-    AD --> AE{¿Se requiere anticipo?}
+    AI --> AJ{¿Proforma aprobada?}
 
-    AE -- Sí --> AF[Solicitar anticipo]
-    AF --> AG{¿Anticipo recibido?}
+    AJ -- No --> AK[Negociación comercial]
+    AK --> AL{¿Nueva propuesta aceptada?}
 
-    AG -- No --> AH[Seguimiento de cobranza]
-    AH --> AG
+    AL -- No --> K
 
-    AG -- Sí --> AI[Generar contrato]
+    AL -- Sí --> AM[Actualizar proforma]
+    AM --> AI
 
-    AE -- No --> AI
+    AJ -- Sí --> AN[Negociación contractual]
 
-    AI --> AJ[Crear obra]
+    AN --> AO{¿Se requiere anticipo?}
 
-    AJ --> AK([Fin])
+    AO -- Sí --> AP[Solicitar anticipo]
+    AP --> AQ{¿Anticipo recibido?}
+
+    AQ -- No --> AR[Seguimiento de cobranza]
+    AR --> AQ
+
+    AQ -- Sí --> AS[Generar contrato]
+
+    AO -- No --> AS
+
+    AS --> AT[Crear obra]
+
+    AT --> AU([Fin])
 ```
 
-Nota: en este diagrama `Generar proforma` representa la generacion de una version formal presentable al cliente. El registro inicial de la proforma se crea antes, en estado `DRAFT`, al crear la solicitud de contratacion.
+Nota: en este diagrama `Generar proforma` representa la generacion de una version formal presentable al cliente. La proforma `DRAFT` se crea al registrar una solicitud interna o cuando una solicitud recibida desde portal de cliente o pagina publica queda aceptada para analisis comercial.
 
 ## Diagrama De Casos De Uso
 
 ```mermaid
 flowchart LR
     Cliente((Cliente))
+    Visitante((Visitante web publico))
     Asesor((Asesor comercial))
     Tecnico((Tecnico))
     Documental((Responsable documental))
@@ -115,6 +133,9 @@ flowchart LR
         UC20[Registrar anticipo recibido]
         UC21[Generar contrato]
         UC22[Crear obra]
+        UC23[Revisar solicitud recibida]
+        UC24[Vincular o registrar cliente]
+        UC25[Asignar asesor comercial]
     end
 
     Cliente --> UC1
@@ -122,10 +143,14 @@ flowchart LR
     Cliente --> UC17
     Cliente --> UC18
     Cliente --> UC20
+    Visitante --> UC2
 
     Asesor --> UC1
     Asesor --> UC2
     Asesor --> UC3
+    Asesor --> UC23
+    Asesor --> UC24
+    Asesor --> UC25
     Asesor --> UC13
     Asesor --> UC14
     Asesor --> UC15
@@ -153,7 +178,10 @@ flowchart LR
 
     Proyectos --> UC22
 
-    UC2 -. incluye .-> UC14
+    UC2 -. extiende .-> UC23
+    UC23 -. incluye .-> UC24
+    UC23 -. incluye .-> UC25
+    UC25 -. habilita .-> UC14
     UC4 -. extiende .-> UC5
     UC5 -. incluye .-> UC6
     UC7 -. extiende .-> UC8
@@ -549,6 +577,7 @@ erDiagram
 
     CLIENT ||--o{ CLIENT_CONTACT : has
     CLIENT ||--o{ CONTRACTING_REQUEST : requests
+    CLIENT_CONTACT ||--o{ CONTRACTING_REQUEST : submits
     CLIENT ||--o{ TECHNICAL_DOCUMENT : owns
     CLIENT ||--o{ CONTRACT : signs
     CLIENT ||--o{ PROJECT : owns
