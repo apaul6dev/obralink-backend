@@ -722,6 +722,10 @@ erDiagram
 
 Nota: `company_id` y los campos terminados en `_user_id` son referencias externas al modulo `identity`. El ER mantiene esas referencias como IDs para conservar limites entre modulos.
 
+## Diccionario De Datos
+
+El diccionario de datos del ER esta separado en [DICCIONARIO_DATOS.md](DICCIONARIO_DATOS.md).
+
 ## Plan De Implementacion
 
 ### Objetivo
